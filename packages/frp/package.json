@@ -1,15 +1,18 @@
 {
-  "name": "synx",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "Debjit Biswas",
-  "license": "MIT",
-  "workspaces": [
-    "packages/*"
-  ]
+    "name": "synx",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "functional",
+        "frp"
+    ],
+    "author": "Debjit Biswas",
+    "license": "MIT",
+    "workspaces": [
+        "packages/*"
+    ]
 }
