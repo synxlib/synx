@@ -1,0 +1,19 @@
+{
+  "name": "@synx/dom",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest src/"
+  },
+  "keywords": [
+    "frp",
+    "dom",
+    "helpers"
+  ],
+  "author": "Debjit Biswas",
+  "license": "MIT",
+  "dependencies": {
+    "@synx/frp": "workspace:0.1.0"
+  }
+}
