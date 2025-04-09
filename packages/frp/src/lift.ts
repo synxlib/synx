@@ -143,6 +143,37 @@ export function liftBinary<A, B, R>(
 
 export const lift2 = liftBinary;
 
+export function lift3<A, B, C, R>(
+    fn: (a: UnwrapReactive<A>, b: UnwrapReactive<B>, c: UnwrapReactive<C>) => R,
+): {
+    (a: A extends Reactive<infer UA> ? UA : A,
+     b: B extends Reactive<infer UB> ? UB : B,
+     c: C extends Reactive<infer UC> ? UC : C): R;
+    (a: Reactive<UnwrapReactive<A>>,
+     b: B extends Reactive<infer UB> ? UB : B,
+     c: C extends Reactive<infer UC> ? UC : C): Reactive<R>;
+    (a: A extends Reactive<infer UA> ? UA : A,
+     b: Reactive<UnwrapReactive<B>>,
+     c: C extends Reactive<infer UC> ? UC : C): Reactive<R>;
+    (a: A extends Reactive<infer UA> ? UA : A,
+     b: B extends Reactive<infer UB> ? UB : B,
+     c: Reactive<UnwrapReactive<C>>): Reactive<R>;
+    (a: Reactive<UnwrapReactive<A>>,
+     b: Reactive<UnwrapReactive<B>>,
+     c: C extends Reactive<infer UC> ? UC : C): Reactive<R>;
+    (a: Reactive<UnwrapReactive<A>>,
+     b: B extends Reactive<infer UB> ? UB : B,
+     c: Reactive<UnwrapReactive<C>>): Reactive<R>;
+    (a: A extends Reactive<infer UA> ? UA : A,
+     b: Reactive<UnwrapReactive<B>>,
+     c: Reactive<UnwrapReactive<C>>): Reactive<R>;
+    (a: Reactive<UnwrapReactive<A>>,
+     b: Reactive<UnwrapReactive<B>>,
+     c: Reactive<UnwrapReactive<C>>): Reactive<R>;
+} {
+    return lift(fn) as any;
+}
+
 /**
  * Creates an object with lifted versions of every function in an object
  */
