@@ -6,6 +6,8 @@ export function children<T>(
         each: Reactive<T[]>;
         create: (item: T, index: number) => Node;
         update?: (node: Node, item: T, index: number) => void;
+        shouldUpdate?: (prev: T, next: T) => boolean;
+        key?: (item: T) => string | number;
     },
 ) {
     let items: T[] = [],
@@ -45,6 +47,8 @@ export function children<T>(
             newItems,
             create,
             update,
+            config.shouldUpdate,
+            config.key,
         );
 
         items = result.items;
@@ -97,7 +101,8 @@ function reconcile<T>(
     newItems: T[],
     create: (item: T, index: number) => Node,
     update?: (node: Node, item: T, index: number) => void,
-    shouldUpdate?: (prev: T, next: T) => boolean
+    shouldUpdate?: (prev: T, next: T) => boolean,
+    key?: (item: T) => string | number,
 ): {
     items: T[];
     nodes: Node[];
@@ -116,7 +121,7 @@ function reconcile<T>(
     while (
         start <= endOld &&
         start <= endNew &&
-        oldItems[start] === newItems[start]
+        getKey(oldItems[start], key) === getKey(newItems[start], key)
     ) {
         tempNodes[start] = oldNodes[start];
         tempDisposers[start] = oldDisposers[start];
@@ -130,7 +135,7 @@ function reconcile<T>(
     while (
         endOld >= start &&
         endNew >= start &&
-        oldItems[endOld] === newItems[endNew]
+        getKey(oldItems[endOld], key) === getKey(newItems[endNew], key)
     ) {
         tempNodes[endNew] = oldNodes[endOld];
         tempDisposers[endNew] = oldDisposers[endOld];
@@ -158,28 +163,36 @@ function reconcile<T>(
     }
 
     // Step 3: Keyed diffing: for mid-section reordering + node reuse.
-    const newIndices = new Map<T, number>();
+    const newIndices = new Map<string | number | T, number>();
     const newIndicesNext: number[] = new Array(endNew + 1);
     let i: number, j: number;
 
     for (j = endNew; j >= start; j--) {
+        const k = getKey(newItems[j], key);
         const item = newItems[j];
-        const prev = newIndices.get(item);
+        const prev = newIndices.get(k);
         newIndicesNext[j] = prev === undefined ? -1 : prev;
-        newIndices.set(item, j);
+        newIndices.set(k, j);
     }
 
     for (i = start; i <= endOld; i++) {
-        const oldItem = oldItems[i];
-        const matchIndex = newIndices.get(oldItem);
+        const k = getKey(oldItems[i], key);
+        const matchIndex = newIndices.get(k);
 
         if (matchIndex !== undefined && matchIndex !== -1) {
             tempNodes[matchIndex] = oldNodes[i];
             tempDisposers[matchIndex] = oldDisposers[i];
-            if (!shouldUpdate || shouldUpdate(oldItem, newItems[matchIndex])) {
-                update?.(tempNodes[matchIndex], newItems[matchIndex], matchIndex);
+            if (
+                !shouldUpdate ||
+                shouldUpdate(oldItems[i], newItems[matchIndex])
+            ) {
+                update?.(
+                    tempNodes[matchIndex],
+                    newItems[matchIndex],
+                    matchIndex,
+                );
             }
-            newIndices.set(oldItem, newIndicesNext[matchIndex]);
+            newIndices.set(k, newIndicesNext[matchIndex]);
         } else {
             parent.removeChild(oldNodes[i]);
             oldDisposers[i]?.();
@@ -209,3 +222,11 @@ function reconcile<T>(
         len: newLen,
     };
 }
+
+function getKey<T>(
+    item: T,
+    keyFn?: (item: T) => string | number,
+): T | string | number {
+    return keyFn ? keyFn(item) : item;
+}
+

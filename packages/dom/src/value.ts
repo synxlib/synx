@@ -101,14 +101,6 @@ type ValueOptions = {
     lazy?: boolean;
 };
 
-function normalizeNodeList(
-    list: NodeListOf<HTMLInputElement> | HTMLInputElement[],
-): NodeListOf<HTMLInputElement> {
-    const fragment = document.createDocumentFragment();
-    list.forEach((el) => fragment.appendChild(el));
-    return fragment.querySelectorAll("input") as NodeListOf<HTMLInputElement>;
-}
-
 type ValueReturn<T> = T extends HTMLTextAreaElement
     ? Event<string>
     : T extends HTMLSelectElement
