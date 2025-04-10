@@ -15,5 +15,8 @@
   "license": "MIT",
   "dependencies": {
     "@synx/frp": "workspace:0.1.0"
+  },
+  "devDependencies": {
+    "solid-js": "^1.9.5"
   }
 }
