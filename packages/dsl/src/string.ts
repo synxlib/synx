@@ -2,15 +2,15 @@ import { Reactive } from "@synx/frp";
 
 
 const f0 = <A, R>(method: () => R) => (str: string): R => {
-    return method.bind(str)();
+    return method.call(str);
 }
 
 const f1 = <A, R>(method: (arg: A) => R) => (str: string, arg: A): R => {
-    return method.bind(str)(arg);
+    return method.call(str, arg);
 }
 
 const f2 = <A, B, R>(method: (a: A, b: B) => R) => (str: string, a: A, b: B): R => {
-    return method.bind(str)(a, b);
+    return method.call(str, a, b);
 }
 
 export const at = Reactive.lift2(f1(String.prototype.at));
