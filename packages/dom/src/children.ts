@@ -1,4 +1,4 @@
-import { Reactive } from "@synx/frp";
+import { Reactive, subscribe } from "@synx/frp/reactive";
 
 export function children<T>(
     parent: HTMLElement,
@@ -17,7 +17,7 @@ export function children<T>(
 
     const { each, create, update } = config;
 
-    each.subscribe((newItems) => {
+    subscribe(each, (newItems) => {
         const newLen = newItems.length;
 
         if (newLen === 0) {

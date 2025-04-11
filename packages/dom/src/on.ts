@@ -1,11 +1,11 @@
-import { Event } from "@synx/frp";
+import { Event, create, addCleanup } from "@synx/frp/event";
 
 export function on<K extends keyof HTMLElementEventMap>(
     el: HTMLElement,
     eventName: K,
     options: OnOptions<K> = {},
 ): Event<HTMLElementEventMap[K]> {
-    const [event, emit] = Event.create<HTMLElementEventMap[K]>();
+    const [event, emit] = create<HTMLElementEventMap[K]>();
 
     const target: EventTarget = options.window
         ? window
@@ -18,16 +18,6 @@ export function on<K extends keyof HTMLElementEventMap>(
 
         if (options.self && e.target !== el) return;
         if (options.outside && !isClickOutside(el, e)) return;
-
-        // if (isKeyboardEvent(eventName)) {
-        //     const keyEvent = eventTyped as KeyboardEvent;
-        //     const keyOptions = options as Extract<
-        //         OnOptions<K>,
-        //         { key?: string }
-        //     >;
-
-        //     if (keyOptions.key && keyEvent.key !== keyOptions.key) return;
-        // }
 
         if (isKeyboardEvent(eventName)) {
             const keyEvent = eventTyped as KeyboardEvent;
@@ -63,11 +53,11 @@ export function on<K extends keyof HTMLElementEventMap>(
         passive: options.passive,
     });
 
-    event.cleanup = () => {
+    addCleanup(event, () => {
         target.removeEventListener(eventName, handler, {
             capture: options.capture,
         });
-    };
+    });
 
     return event;
 }

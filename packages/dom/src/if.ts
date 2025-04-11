@@ -1,4 +1,4 @@
-import { Reactive } from "@synx/frp";
+import { Reactive, subscribe } from "@synx/frp/reactive";
 
 type IfOptions =
     | { factory: () => Node; parent: HTMLElement, template?: never }
@@ -17,7 +17,7 @@ export function nodeIf(condition: Reactive<boolean>, options: IfOptions) {
         parent.appendChild(placeholder);
     }
 
-    condition.subscribe((value) => {
+    subscribe(condition, (value) => {
         if (value) {
             if (insertedNodes.length === 0) {
                 const nodes = options.template

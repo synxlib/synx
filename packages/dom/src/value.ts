@@ -1,5 +1,6 @@
 import { on } from "./on";
-import { Event } from "@synx/frp";
+// import type { Event } from "@synx/frp/event";
+import { Event, never, map } from "@synx/frp/event";
 
 export function value<T extends ValueElement>(
     el: T,
@@ -9,7 +10,7 @@ export function value<T extends ValueElement>(
 
     // Normalize arrays
     if (Array.isArray(el)) {
-        if (el.length === 0) return Event.never() as ValueReturn<T>;
+        if (el.length === 0) return never() as ValueReturn<T>;
         const nodeList = document.querySelectorAll<HTMLInputElement>(
             `[name="${el[0].name}"]`,
         );
@@ -19,12 +20,12 @@ export function value<T extends ValueElement>(
     // Handle NodeList (checkbox[] or radio[])
     if (el instanceof NodeList) {
         const first = el[0] as HTMLInputElement | undefined;
-        if (!first) return Event.never() as ValueReturn<T>; // or Event.of(undefined) for radio?
+        if (!first) return never() as ValueReturn<T>; // or Event.of(undefined) for radio?
 
         const type = first.type;
 
         if (type === "checkbox") {
-            return on(first, "change").map(() => {
+            return map(on(first, "change"), () => {
                 return Array.from(el)
                     .filter((e): e is HTMLInputElement => (e as HTMLInputElement).checked)
                     .map((e) => (options.type === "boolean" ? true : e.value));
@@ -32,7 +33,7 @@ export function value<T extends ValueElement>(
         }
 
         if (type === "radio") {
-            return on(first, "change").map(() => {
+            return map(on(first, "change"), () => {
                 const selected = Array.from(el).find((e): e is HTMLInputElement => (e as HTMLInputElement).checked);
                 return selected?.value ?? undefined;
             }) as ValueReturn<T>;
@@ -46,24 +47,24 @@ export function value<T extends ValueElement>(
     // Handle <select multiple>
     if (el instanceof HTMLSelectElement) {
         if (el.multiple) {
-            return on(el, "change").map(() => {
+            return map(on(el, "change"), () => {
                 return Array.from(el.selectedOptions).map((o) => o.value);
             }) as ValueReturn<T>;
         }
 
-        return on(el, "change").map(() => el.value) as ValueReturn<T>;
+        return map(on(el, "change"), () => el.value) as ValueReturn<T>;
     }
 
     // Handle <textarea>
     if (el instanceof HTMLTextAreaElement) {
-        return on(el, eventName).map(() => el.value) as ValueReturn<T>;
+        return map(on(el, eventName), () => el.value) as ValueReturn<T>;
     }
 
     // Handle <input>
     if (el instanceof HTMLInputElement) {
         switch (el.type) {
             case "checkbox":
-                return on(el, "change").map(() => {
+                return map(on(el, "change"), () => {
                     return options.type === "string"
                         ? String(el.checked)
                         : options.type === "number"
@@ -72,17 +73,17 @@ export function value<T extends ValueElement>(
                 }) as ValueReturn<T>;
 
             case "radio":
-                return on(el, "change").map(() =>
+                return map(on(el, "change"), () =>
                     el.checked ? el.value : undefined,
                 ) as ValueReturn<T>;
 
             case "number":
-                return on(el, eventName).map(() =>
+                return map(on(el, eventName), () =>
                     options.type === "string" ? el.value : parseFloat(el.value),
                 ) as ValueReturn<T>;
 
             default:
-                return on(el, eventName).map(() => el.value) as ValueReturn<T>;
+                return map(on(el, eventName), () => el.value) as ValueReturn<T>;
         }
     }
 

@@ -1,13 +1,14 @@
-import { Reactive } from "@synx/frp";
+import { Reactive, subscribe, get } from "@synx/frp/reactive";
 
 export function bindClass(
     el: HTMLElement,
     className: string,
     reactive: Reactive<boolean>,
 ): () => void {
-    el.classList.toggle(className, reactive.get());
+    el.classList.toggle(className, get(reactive));
 
-    return reactive.subscribe((value) => {
+    return subscribe(reactive, (value) => {
+        console.log("Toggling class", value)
         el.classList.toggle(className, value);
     });
 }

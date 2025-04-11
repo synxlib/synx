@@ -1,0 +1,19 @@
+{
+  "name": "demos",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@synx/dom": "workspace:0.1.0",
+    "@synx/dsl": "workspace:0.1.0",
+    "@synx/frp": "workspace:0.1.0"
+  },
+  "@parcel/resolver-default": {
+    "packageExports": true
+  }
+}

@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import { Reactive } from "@synx/frp";
+import { Reactive, subscribe, get } from "@synx/frp/reactive";
 
 export function bindStyle(
     el: HTMLElement,
@@ -8,9 +8,9 @@ export function bindStyle(
 ): () => void {
     const kebab = toKebabCase(styleName);
 
-    el.style.setProperty(kebab, reactive.get());
+    el.style.setProperty(kebab, get(reactive));
 
-    return reactive.subscribe((value) => {
+    return subscribe(reactive, (value) => {
         el.style.setProperty(kebab, value);
     });
 }

@@ -1,19 +1,22 @@
 {
-  "name": "@synx/dsl",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "vitest src/"
-  },
-  "keywords": [
-    "frp",
-    "dom",
-    "helpers"
-  ],
-  "author": "Debjit Biswas",
-  "license": "MIT",
-  "dependencies": {
-    "@synx/frp": "workspace:0.1.0"
-  }
+    "name": "@synx/dsl",
+    "version": "0.1.0",
+    "description": "",
+    "main": "src/index.ts",
+    "scripts": {
+        "test": "vitest src/"
+    },
+    "keywords": [
+        "frp",
+        "dsl"
+    ],
+    "author": "Debjit Biswas",
+    "license": "MIT",
+    "dependencies": {
+        "@synx/frp": "workspace:0.1.0"
+    },
+    "@parcel/resolver-default": {
+        "packageExports": true
+    }
 }
+

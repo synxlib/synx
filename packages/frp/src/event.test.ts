@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Event, EventImpl } from "./event";
-import { Reactive } from "./reactive";
+import type { Event, EventImpl } from "./event/event";
+import * as E from "./event/event";
+import type{ Reactive } from "./reactive/reactive";
+import * as R from "./reactive/reactive";
 
 describe("Event", () => {
     // Helper function to create an event and trigger it with a value
     function createTestEvent<A>(): [EventImpl<A>, (value: A) => void] {
-        const [event, emit] = Event.create();
+        const [event, emit] = E.create();
         return [event as EventImpl<A>, emit];
     }
 
@@ -16,7 +18,7 @@ describe("Event", () => {
     } {
         const values: A[] = [];
         console.log("Collect values subscribe");
-        const unsubscribe = event.subscribe((value) => {
+        const unsubscribe = E.subscribe(event, (value) => {
             values.push(value);
         });
         return { values, unsubscribe };
@@ -33,7 +35,7 @@ describe("Event", () => {
                 const [event, emit] = createTestEvent();
 
                 // Apply identity function through map
-                const mappedEvent = event.map((x) => x);
+                const mappedEvent = E.map(event,(x) => x);
 
                 // Collect values from both events
                 const original = collectValues(event);
@@ -50,8 +52,8 @@ describe("Event", () => {
                 // Clean up
                 original.unsubscribe();
                 mapped.unsubscribe();
-                event.cleanup();
-                mappedEvent.cleanup();
+                E.cleanup(event);
+                E.cleanup(mappedEvent);
             });
         });
 
@@ -66,10 +68,10 @@ describe("Event", () => {
                 const composed = (x: number) => f(g(x)); // (x + 5) * 2
 
                 // Map with composed function
-                const composedMap = event.map(composed);
+                const composedMap = E.map(event,composed);
 
                 // Map with separate functions
-                const separateMap = event.map(g).map(f);
+                const separateMap = E.map(E.map(event,g), f);
 
                 // Collect results from both approaches
                 const composedResults = collectValues(composedMap);
@@ -87,9 +89,9 @@ describe("Event", () => {
                 // Clean up
                 composedResults.unsubscribe();
                 separateResults.unsubscribe();
-                event.cleanup();
-                composedMap.cleanup();
-                separateMap.cleanup();
+                E.cleanup(event);
+                E.cleanup(composedMap);
+                E.cleanup(separateMap);
             });
         });
 
@@ -97,7 +99,7 @@ describe("Event", () => {
             it("should correctly map string events", () => {
                 const [event, emit] = createTestEvent<string>();
 
-                const mappedEvent = event.map((str) => str.toUpperCase());
+                const mappedEvent = E.map(event,(str) => str.toUpperCase());
                 const results = collectValues(mappedEvent);
 
                 emit("hello");
@@ -106,14 +108,14 @@ describe("Event", () => {
                 expect(results.values).toEqual(["HELLO", "WORLD"]);
 
                 results.unsubscribe();
-                event.cleanup();
-                mappedEvent.cleanup();
+                E.cleanup(event);
+                E.cleanup(mappedEvent);
             });
 
             it("should correctly map object events", () => {
                 const [event, emit] = createTestEvent<{ count: number }>();
 
-                const mappedEvent = event.map((obj) => ({
+                const mappedEvent = E.map(event,(obj) => ({
                     count: obj.count + 1,
                 }));
                 const results = collectValues(mappedEvent);
@@ -124,8 +126,8 @@ describe("Event", () => {
                 expect(results.values).toEqual([{ count: 6 }, { count: 11 }]);
 
                 results.unsubscribe();
-                event.cleanup();
-                mappedEvent.cleanup();
+                E.cleanup(event);
+                E.cleanup(mappedEvent);
             });
         });
 
@@ -134,12 +136,15 @@ describe("Event", () => {
                 const [event, emit] = createTestEvent<number>();
 
                 // Create a deeply nested map chain
-                const deeplyMapped = event
-                    .map((x) => x + 1)
-                    .map((x) => x * 2)
-                    .map((x) => x.toString())
-                    .map((x) => parseInt(x))
-                    .map((x) => x - 1);
+                // const deeplyMapped = event
+                //     .map((x) => x + 1)
+                //     .map((x) => x * 2)
+                //     .map((x) => x.toString())
+                //     .map((x) => parseInt(x))
+                //     .map((x) => x - 1);
+
+                const deeplyMapped =
+                    E.map(E.map(E.map(E.map(E.map(event, (x) => x + 1), (x) => x * 2), (x) => x.toString()), (x) => parseInt(x)), (x) => x - 1);
 
                 const results = collectValues(deeplyMapped);
 
@@ -148,8 +153,8 @@ describe("Event", () => {
                 expect(results.values).toEqual([11]);
 
                 results.unsubscribe();
-                event.cleanup();
-                deeplyMapped.cleanup();
+                E.cleanup(event);
+                E.cleanup(deeplyMapped);
             });
 
             it("should handle null/undefined values correctly", () => {
@@ -157,7 +162,7 @@ describe("Event", () => {
                     number | null | undefined
                 >();
 
-                const mappedEvent = event.map((x) =>
+                const mappedEvent = E.map(event,(x) =>
                     x === null || x === undefined ? -1 : x * 2
                 );
                 const results = collectValues(mappedEvent);
@@ -170,8 +175,8 @@ describe("Event", () => {
                 expect(results.values).toEqual([10, -1, -1, 20]);
 
                 results.unsubscribe();
-                event.cleanup();
-                mappedEvent.cleanup();
+                E.cleanup(event);
+                E.cleanup(mappedEvent);
             });
         });
 
@@ -180,10 +185,10 @@ describe("Event", () => {
                 const [event, emit] = createTestEvent<number>();
 
                 const mapFn = vi.fn((x: number) => x * 2);
-                const mappedEvent = event.map(mapFn);
+                const mappedEvent = E.map(event,mapFn);
 
                 // Subscribe to mapped event
-                const unsubscribe = mappedEvent.subscribe(() => {});
+                const unsubscribe = E.subscribe(mappedEvent, () => {});
 
                 // Emit values
                 emit(1);
@@ -197,18 +202,18 @@ describe("Event", () => {
                 expect(mapFn).toHaveBeenNthCalledWith(3, 3);
 
                 unsubscribe();
-                event.cleanup();
-                mappedEvent.cleanup();
+                E.cleanup(event);
+                E.cleanup(mappedEvent);
             });
         });
     });
 
     describe("Event apply function", () => {
         it("should apply reactive function to the event", () => {
-            const reactiveFn = Reactive.of((x: number) => x * 2);
+            const reactiveFn = R.of((x: number) => x * 2);
             const [event, emit] = createTestEvent<number>();
 
-            const output = collectValues(event.apply(reactiveFn));
+            const output = collectValues(E.apply(event,reactiveFn));
 
             emit(2);
             emit(3);
@@ -221,9 +226,9 @@ describe("Event", () => {
             const [event, emit] = createTestEvent<number>();
             const [multiplier, emitMultiplier] = createTestEvent<number>();
 
-            const reactiveFn = multiplier.stepper(2).map((m) => (x: number) => x * m);
+            const reactiveFn = R.map(E.stepper(multiplier, 2), (m) => (x: number) => x * m);
 
-            const output = collectValues(event.apply(reactiveFn));
+            const output = collectValues(E.apply(event, reactiveFn));
 
             emit(2);
             emitMultiplier(3)

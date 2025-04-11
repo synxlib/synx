@@ -21,6 +21,18 @@ importers:
         specifier: ^3.1.1
         version: 3.1.1
 
+  packages/demos:
+    dependencies:
+      '@synx/dom':
+        specifier: workspace:0.1.0
+        version: link:../dom
+      '@synx/dsl':
+        specifier: workspace:0.1.0
+        version: link:../dsl
+      '@synx/frp':
+        specifier: workspace:0.1.0
+        version: link:../frp
+
   packages/dom:
     dependencies:
       '@synx/frp':

@@ -1,22 +1,26 @@
 {
-  "name": "synx",
-  "version": "1.0.0",
-  "description": "",
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "frp"
-  ],
-  "author": "Debjit Biswas",
-  "license": "MIT",
-  "devDependencies": {
-    "prettier": "^3.5.3",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.1"
-  }
+    "name": "synx",
+    "version": "1.0.0",
+    "description": "",
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "frp"
+    ],
+    "author": "Debjit Biswas",
+    "license": "MIT",
+    "devDependencies": {
+        "prettier": "^3.5.3",
+        "tsup": "^8.4.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.1"
+    },
+    "@parcel/resolver-default": {
+        "packageExports": true
+    }
 }
+

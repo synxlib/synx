@@ -1,4 +1,7 @@
-import { Reactive, Event } from "@synx/frp";
+import type { Reactive } from "@synx/frp/reactive";
+import type { Event } from "@synx/frp/event";
+import { map as mapE, stepper } from "@synx/frp/event";
+import { map as mapR, isReactive } from "@synx/frp/reactive";
 
 /**
  * Creates a reactive random number that updates when the trigger changes
@@ -72,12 +75,10 @@ function randomFactory<T, R>(
     fn: () => R,
     trigger: Reactive<T> | Event<T>
 ): Reactive<R> {
-    if ("get" in trigger) {
-        return trigger.map(fn);
+    if (isReactive(trigger)) {
+        return mapR(trigger, fn);
     } else {
-        return trigger
-            .map(fn)
-            .stepper(fn());
+        return stepper(mapE(trigger, fn), fn());
     }
 }
 

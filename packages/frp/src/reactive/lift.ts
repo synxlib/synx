@@ -1,4 +1,5 @@
-import { Reactive } from "./reactive";
+import type { Reactive } from "./reactive";
+import * as R from "./reactive";
 
 /**
  * Type helper for determining if a type is a Reactive
@@ -37,9 +38,7 @@ export function lift<A extends any[], R>(
         const hasReactiveArg = args.some(
             (arg) =>
                 arg !== null &&
-                typeof arg === "object" &&
-                "get" in arg &&
-                "subscribe" in arg,
+                R.isReactive(arg)
         );
 
         if (!hasReactiveArg) {
@@ -49,27 +48,25 @@ export function lift<A extends any[], R>(
 
         // Get current values for all arguments
         const currentValues = args.map((arg) =>
-            arg !== null && typeof arg === "object" && "get" in arg
-                ? (arg as unknown as Reactive<any>).get()
+            arg !== null && R.isReactive(arg)
+                ? R.get(arg as unknown as Reactive<any>)
                 : arg,
         ) as UnwrapReactiveArgs<A>;
 
         // Create initial reactive result
         const result = fn(...currentValues);
-        const resultReactive = Reactive.of(result);
+        const resultReactive = R.of(result);
 
         // Set up subscriptions for each reactive argument
         const subscriptions = args
             .map((arg, index) => {
                 if (
                     arg !== null &&
-                    typeof arg === "object" &&
-                    "get" in arg &&
-                    "subscribe" in arg
+                    R.isReactive(arg)
                 ) {
                     const reactive = arg as unknown as Reactive<any>;
 
-                    return reactive.subscribe((newValue) => {
+                    return R.subscribe(reactive, (newValue) => {
                         // Create a new array of current values with the updated value
                         const newValues = [...currentValues];
                         newValues[index] = newValue;
@@ -85,12 +82,9 @@ export function lift<A extends any[], R>(
             })
             .filter(Boolean) as Array<() => void>;
 
-        // Add cleanup function to the reactive result
-        const originalCleanup = resultReactive.cleanup;
-        (resultReactive as any).cleanup = () => {
+        R.addCleanup(resultReactive, () => {
             subscriptions.forEach((unsub) => unsub());
-            originalCleanup.call(resultReactive);
-        };
+        });
 
         return resultReactive;
     }) as any;
@@ -109,7 +103,7 @@ export function lift1<A, R>(
             "get" in a &&
             "subscribe" in a
         ) {
-            return (a as Reactive<A>).map(fn);
+            return R.map(a as Reactive<A>, fn);
         }
         return fn(a as A);
     }) as any;

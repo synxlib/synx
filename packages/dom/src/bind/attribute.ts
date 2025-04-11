@@ -1,5 +1,7 @@
-import { Reactive } from "@synx/frp";
+import { Reactive, subscribe, get } from "@synx/frp/reactive";
 import { ElementAttributeMap } from "../element-attribute-map";
+import { show } from "../show";
+import { bindClass, bindClasses } from "./class";
 
 const booleanAttrs = new Set([
     "disabled",
@@ -23,15 +25,16 @@ export function bind<
     A extends keyof ElementAttributeMap[K],
 >(
     el: HTMLElement,
-    attr: A,
+    attr: A | "text",
     reactive: Reactive<NonNullable<ElementAttributeMap[K][A]>>,
 ): () => void {
-    const value = reactive.get();
+    const value = get(reactive);
 
     // Special case: "text" means textContent
     if (attr === "text") {
         el.textContent = String(value);
-        return reactive.subscribe((v) => {
+        return subscribe(reactive, (v) => {
+            console.log("Setting text content", v);
             el.textContent = String(v);
         });
     }
@@ -43,7 +46,7 @@ export function bind<
         if (value) el.setAttribute(attrKey, "");
         else el.removeAttribute(attrKey);
 
-        return reactive.subscribe((v) => {
+        return subscribe(reactive, (v) => {
             if (v) el.setAttribute(attrKey, "");
             else el.removeAttribute(attrKey);
         });
@@ -51,35 +54,33 @@ export function bind<
 
     // Everything else = string attribute
     el.setAttribute(attrKey, String(value));
-    return reactive.subscribe((v) => {
+    return subscribe(reactive, (v) => {
         el.setAttribute(attrKey, String(v));
     });
 }
 
 export function binds<K extends keyof ElementAttributeMap>(
     el: HTMLElement,
-    tag: K,
     attrs: Partial<{
-        [A in keyof ElementAttributeMap[K]]: Reactive<
-            NonNullable<ElementAttributeMap[K][A]>
-        >;
+        [A in keyof ElementAttributeMap[K] | "text" | "show" | "classes"]: any;
     }>,
 ): () => void {
     const unsubscribers: (() => void)[] = [];
 
     for (const key in attrs) {
-        const reactive = attrs[key as keyof typeof attrs];
-        if (!reactive) continue;
+        const value = attrs[key as keyof typeof attrs];
+        if (value == null) continue;
 
-        const unsubscribe = bind(
-            el,
-            key as keyof ElementAttributeMap[K],
-            reactive,
-        );
-        unsubscribers.push(unsubscribe);
+        if (key === "text") {
+            unsubscribers.push(bind(el, "text", value));
+        } else if (key === "show") {
+            unsubscribers.push(show(el, value));
+        } else if (key === "classes") {
+            unsubscribers.push(bindClasses(el, value));
+        } else {
+            unsubscribers.push(bind(el, key as any, value));
+        }
     }
 
-    return () => {
-        for (const unsub of unsubscribers) unsub();
-    };
+    return () => unsubscribers.forEach((unsub) => unsub());
 }

@@ -1,4 +1,4 @@
-import { Reactive } from "@synx/frp";
+import { Reactive, subscribe, get } from "@synx/frp/reactive";
 
 export function show(
     el: HTMLElement,
@@ -29,8 +29,8 @@ export function show(
 
     if (el.hasAttribute("x-cloak")) el.removeAttribute("x-cloak");
 
-    setVisibility(reactive.get());
-    return reactive.subscribe(setVisibility);
+    setVisibility(get(reactive));
+    return subscribe(reactive, setVisibility);
 }
 
 const displayCache = new Map<string, string>();
