@@ -148,23 +148,7 @@ export function cleanup<A>(r: Reactive<A>) {
 }
 
 export function map<A, B>(r: Reactive<A>, fn: (a: A) => B): Reactive<B> {
-    const impl = r as ReactiveImpl<A>;
-    const initialValue = fn(get(r));
-
-    if (impl.changeEvent) {
-        const mappedEvent = E.map(impl.changeEvent, fn);
-        return new ReactiveImpl<B>(initialValue, mappedEvent);
-    }
-
-    // fallback: manually subscribe and propagate changes
-    const result = new ReactiveImpl<B>(initialValue);
-    const unsub = subscribe(r, (val) => {
-        const mapped = fn(val);
-        result.updateValueInternal(mapped);
-    });
-
-    result.cleanupFns.add(unsub);
-    return result;
+    return ap(r, of(fn));
 }
 
 export function ap<A, B>(
