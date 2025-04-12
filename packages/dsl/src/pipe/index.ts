@@ -5,7 +5,7 @@ type ArgList<T, A extends any[]> = {
 };
 
 type Pipeable<T> = {
-    next: <R, A extends any[]>(
+    to: <R, A extends any[]>(
         fn: (...args: ArgList<T, A>) => R,
         ...args: A
     ) => Pipeable<R>;
@@ -15,7 +15,7 @@ type Pipeable<T> = {
 
 export function pipe<T>(v: T): Pipeable<T> {
     return {
-        next(fn, ...args) {
+        to(fn, ...args) {
             const resolved = args.map((a) => (a === $ ? v : a)) as any;
             return pipe(fn(...resolved));
         },

@@ -1,8 +1,7 @@
 import { Future } from "../future";
-// import { InternalReactive, Reactive, ReactiveImpl } from "./reactive";
 import type { InternalReactive, Reactive } from "../reactive/reactive";
 import * as R from '../reactive/reactive';
-import { batch, scheduleUpdate } from "../batch";
+import { scheduleUpdate } from "../batch";
 
 /**
  * Public interface for Events

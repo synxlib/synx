@@ -3,6 +3,98 @@
     "version": "0.1.0",
     "description": "",
     "main": "src/index.ts",
+    "exports": {
+        ".": {
+            "production": {
+                "import": "./dist/index.js",
+                "require": "./dist/index.cjs"
+            },
+            "development": {
+                "import": "./src/index.ts"
+            },
+            "default": "./src/index.ts"
+        },
+        "./error": {
+            "default": "./src/error/index.ts",
+            "production": {
+                "import": "./dist/error/index.js",
+                "require": "./dist/error/index.cjs"
+            },
+            "development": {
+                "import": "./src/error/index.ts"
+            }
+        },
+        "./list": {
+            "default": "./src/list/index.ts",
+            "production": {
+                "import": "./dist/list/index.js",
+                "require": "./dist/list/index.cjs"
+            },
+            "development": {
+                "import": "./src/list/index.ts"
+            }
+        },
+        "./logic": {
+            "default": "./src/logic/index.ts",
+            "production": {
+                "import": "./dist/logic/index.js",
+                "require": "./dist/logic/index.cjs"
+            },
+            "development": {
+                "import": "./src/logic/index.ts"
+            }
+        },
+        "./math": {
+            "default": "./src/math/index.ts",
+            "production": {
+                "import": "./dist/math/index.js",
+                "require": "./dist/math/index.cjs"
+            },
+            "development": {
+                "import": "./src/math/index.ts"
+            }
+        },
+        "./object": {
+            "default": "./src/object/index.ts",
+            "production": {
+                "import": "./dist/object/index.js",
+                "require": "./dist/object/index.cjs"
+            },
+            "development": {
+                "import": "./src/object/index.ts"
+            }
+        },
+        "./pipe": {
+            "default": "./src/pipe/index.ts",
+            "production": {
+                "import": "./dist/pipe/index.js",
+                "require": "./dist/pipe/index.cjs"
+            },
+            "development": {
+                "import": "./src/pipe/index.ts"
+            }
+        },
+        "./random": {
+            "default": "./src/random/index.ts",
+            "production": {
+                "import": "./dist/random/index.js",
+                "require": "./dist/random/index.cjs"
+            },
+            "development": {
+                "import": "./src/random/index.ts"
+            }
+        },
+        "./string": {
+            "default": "./src/string/index.ts",
+            "production": {
+                "import": "./dist/string/index.js",
+                "require": "./dist/string/index.cjs"
+            },
+            "development": {
+                "import": "./src/string/index.ts"
+            }
+        }
+    },
     "scripts": {
         "test": "vitest src/"
     },
