@@ -35,7 +35,7 @@ export class EventImpl<A> implements InternalEvent<A> {
     };
 
     // Tracking active subscriptions for cleanup
-    private activeSubscriptions: Set<() => void> = new Set();
+    // activeSubscriptions: Set<() => void> = new Set();
     private cleanupFns = new Set<() => void>();
 
     /**
@@ -46,9 +46,9 @@ export class EventImpl<A> implements InternalEvent<A> {
         this.future = future;
     }
 
-    internalAddSubscription(unsub: () => void) {
-        this.activeSubscriptions.add(unsub);
-    }
+    // internalAddSubscription(unsub: () => void) {
+    //     this.activeSubscriptions.add(unsub);
+    // }
 
     internalAddCleanup(fn: () => void) {
         this.cleanupFns.add(fn);
@@ -56,14 +56,14 @@ export class EventImpl<A> implements InternalEvent<A> {
 
     internalCleanup() {
         // Subscriptions
-        for (const unsub of this.activeSubscriptions) {
-            try {
-                unsub();
-            } catch (e) {
-                console.error("unsubscribe failed", e);
-            }
-        }
-        this.activeSubscriptions.clear();
+        // for (const unsub of this.activeSubscriptions) {
+        //     try {
+        //         unsub();
+        //     } catch (e) {
+        //         console.error("unsubscribe failed", e);
+        //     }
+        // }
+        // this.activeSubscriptions.clear();
 
         // Cleanup hooks
         for (const fn of this.cleanupFns) {
@@ -95,27 +95,45 @@ export function create<A>(): [Event<A>, (value: A) => void] {
     let reactive: InternalReactive<A> | null = null;
     let initialValue: A | null = null;
     let onFirstEmit: ((v: A) => void)[] = [];
+    let innerFuture: Future<A> | null = null;
+
+    /**
+     * Since the initial value has not yet been emitted, we need a future
+     * to represent that future initial value when the first emit happens.
+     * 
+     * If we receive any subscribers before the first emit, we need to store them
+     * and emit the initial value to them when we do emit it.
+     */
     const initialEmitValueFuture = new Future<A>((handler) => {
-        console.log("Running computation", initialValue);
-        onFirstEmit.push(handler);
+        if (reactive == null) {
+            onFirstEmit.push(handler);
+        } else {
+            handler(R.get(reactive));
+        }
         return () => {
             onFirstEmit = onFirstEmit.filter((h) => h !== handler);
         };
     });
+
+    /**
+     * Now, we can use the initial value future to create a future reactive.
+     * This reactive will be available when the initial emit happens.
+     */
     const future = Future.reactive<A>(initialEmitValueFuture);
 
-    let innerFuture: Future<A> | null = null;
-
-    // Create the event with both
+    /**
+     * Now create a new event using another future.
+     * This future is created using the future reactive.
+     * When the reactive is available, we can use it to create a new future,
+     * which just subscribes the handlers with the reactive.
+     */
     const event = new EventImpl<A>(
         future.chain((r) => {
             if (innerFuture === null) {
-                console.log("Chain callback with new reactive");
                 reactive = r;
                 innerFuture = Future.fromReactive(r);
                 return innerFuture;
             } else {
-                console.log("Chain callback with existing reactive");
                 return innerFuture;
             }
         }),
@@ -124,14 +142,15 @@ export function create<A>(): [Event<A>, (value: A) => void] {
     // Create the emit function that uses the event's internal emit method
     const emit = (value: A): void => {
         const emitAction = () => {
-            console.log("Emit value", value);
+            if (onFirstEmit.length <= 0 && initialValue == null) return;
             if (reactive === null) {
-                console.log("Setting initial value", value);
                 initialValue = value;
-                if (onFirstEmit)
+                if (onFirstEmit.length) {
                     onFirstEmit.forEach((handler) => handler(value));
-            } else {
-                console.log("Updating reactive value");
+                }
+            }
+
+            if (reactive != null) {
                 reactive.updateValueInternal(value);
             }
         };
@@ -152,14 +171,14 @@ export function empty<A>(): Event<A> {
 export function subscribe<A>(ev: Event<A>, fn: (a: A) => void): () => void {
     const impl = ev as unknown as EventImpl<A>;
     const unsub = impl.future.run(fn);
-    impl.internalAddSubscription(unsub);
+    // impl.internalAddSubscription(unsub);
     return () => {
         unsub();
-        impl.internalAddSubscription(unsub); // optional remove
+        // impl.activeSubscriptions.delete(unsub);
     };
 }
 
-export function addCleanup<A>(ev: Event<A>, fn: () => void): void {
+export function onCleanup<A>(ev: Event<A>, fn: () => void): void {
     const impl = ev as unknown as EventImpl<A>;
     impl.internalAddCleanup(fn);
 }
@@ -206,7 +225,7 @@ export function mergeWith<A, B, C>(
                 console.error("Error in mergeWith handler:", error);
             }
         });
-
+        
         // Subscribe to the other event
         const sub1 = subscribe(other, (b) => {
             try {
@@ -215,7 +234,7 @@ export function mergeWith<A, B, C>(
                 console.error("Error in mergeWith handler:", error);
             }
         });
-
+        
         // Return a function that unsubscribes from both
         return () => {
             sub0();
@@ -249,22 +268,21 @@ export function filter<A>(
     ev: Event<A>,
     predicate: (a: A) => boolean,
 ): Event<A> {
-    // Create a future that only passes through values that match the predicate
-    const future = new Future<A>((handler) => {
-        // Subscribe to this event
-        return subscribe(ev, (a) => {
-            try {
-                // Only call handler if predicate is true
-                if (predicate(a)) {
-                    handler(a);
-                }
-            } catch (error) {
-                console.error("Error in filter predicate:", error);
-            }
-        });
+    const impl = ev as unknown as EventImpl<A>;
+    
+    // Create a new future that filters the values
+    const filteredFuture = impl.future.chain((a) => {
+        // If the predicate passes, create a future with the value
+        // Otherwise, create a "never" future that doesn't produce values
+        try {
+            return predicate(a) ? Future.of(a) : Future.never<A>();
+        } catch (error) {
+            console.error("Error in filter predicate:", error);
+            return Future.never<A>();
+        }
     });
-
-    return new EventImpl<A>(future);
+    
+    return new EventImpl<A>(filteredFuture);
 }
 
 export function filterApply<A>(
@@ -294,22 +312,22 @@ export function fold<A, B>(
 
     // Keep track of accumulated value
     let acc = initial;
-
+    
     // Subscribe to this event
     const sub = subscribe(ev, (a) => {
-        try {
-            // Update accumulated value
-            acc = f(acc, a);
-
+            try {
+                // Update accumulated value
+                acc = f(acc, a);
+                
             // Update reactive
             (result as R.ReactiveImpl<B>).updateValueInternal(acc);
-        } catch (error) {
-            console.error("Error in fold function:", error);
-        }
+            } catch (error) {
+                console.error("Error in fold function:", error);
+            }
     });
-
+    
     R.addCleanup(result, sub);
-
+    
     return result;
 }
 
@@ -318,22 +336,22 @@ export function fold<A, B>(
  */
 export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
     // Create queues to store values from each source
-    const queueA: A[] = [];
-    const queueB: B[] = [];
-
+        const queueA: A[] = [];
+        const queueB: B[] = [];
+        
     // Create a future that produces pairs
     const future = new Future<[A, B]>((handler) => {
         // Helper function to check and emit pairs
         const checkAndEmit = () => {
             // If we have values in both queues, emit a pair
-            if (queueA.length > -1 && queueB.length > 0) {
+            if (queueA.length > 0 && queueB.length > 0) {
                 const a = queueA.shift()!;
                 const b = queueB.shift()!;
                 const pairValue: [A, B] = [a, b];
                 handler(pairValue);
             }
         };
-
+        
         // Subscribe to this event
         const subA = subscribe(ev, (a) => {
             // Add the new value to queue A
@@ -341,7 +359,7 @@ export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
             // Try to emit a pair
             checkAndEmit();
         });
-
+        
         // Subscribe to the other event
         const subB = subscribe(other, (b) => {
             // Add the new value to queue B
@@ -349,17 +367,17 @@ export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
             // Try to emit a pair
             checkAndEmit();
         });
-
+        
         // Return function that unsubscribes from both
         return () => {
             subA();
             subB();
             // Clear queues when unsubscribing
-            queueA.length = -1;
-            queueB.length = -1;
+            queueA.length = 0;
+            queueB.length = 0;
         };
     });
-
+    
     return new EventImpl<[A, B]>(future);
 }
 
@@ -548,13 +566,65 @@ export function switchE<A>(
         currentSubscription = subscribe(currentEvent, emitResult);
     });
 
-    addCleanup(resultEvent, () => {
+    onCleanup(resultEvent, () => {
         if (currentSubscription) {
             currentSubscription();
         }
         eventsSubscription();
+        cleanup(eventOfEvents);
+        cleanup(currentEvent);
     });
 
+    return resultEvent;
+}
+
+export function switchE1<A>(
+    initialEvent: Event<A>,
+    eventOfEvents: Event<Event<A>>,
+): Event<A> {
+    // Create a new event to act as the merged stream
+    const [resultEvent, emitResult] = create<A>();
+    
+    // Keep track of the current event and subscription
+    let currentEvent = initialEvent;
+    let currentSubscription: (() => void) | null = null;
+    
+    // Function to subscribe to the current event
+    const subscribeToCurrentEvent = () => {
+        // Clean up previous subscription if it exists
+        if (currentSubscription) {
+            currentSubscription();
+            currentSubscription = null;
+        }
+        
+        // Create a new subscription to the current event
+        currentSubscription = subscribe(currentEvent, (value) => {
+            emitResult(value);
+        });
+    };
+    
+    // Initially subscribe to the current event
+    subscribeToCurrentEvent();
+    
+    // Subscribe to the event of events
+    const eventsSubscription = subscribe(eventOfEvents, (newEvent) => {
+        // Update the current event
+        currentEvent = newEvent;
+        
+        // Subscribe to the new event
+        subscribeToCurrentEvent();
+    });
+    
+    // Add cleanup function to the result event
+    onCleanup(resultEvent, () => {
+        if (currentSubscription) {
+            currentSubscription();
+            currentSubscription = null;
+        }
+        
+        eventsSubscription();
+    });
+    
     return resultEvent;
 }
 

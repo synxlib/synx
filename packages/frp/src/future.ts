@@ -95,7 +95,6 @@ export class Future<A> {
      */
     static fromReactive<A>(reactive: InternalReactive<A>): Future<A> {
         return new Future<A>((handler) => {
-            handler(R.get(reactive));
             return reactive.subscribeInternal(handler, false);
         });
     }

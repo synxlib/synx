@@ -51,7 +51,7 @@ export class ReactiveImpl<A> implements InternalReactive<A> {
             try {
                 sub(newValue);
             } catch (e) {
-                console.log("subscriber error:", e);
+                console.error("subscriber error:", e);
             }
         }
     }

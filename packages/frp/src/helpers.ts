@@ -22,7 +22,7 @@ export function fromDOMEvent<K extends keyof HTMLElementEventMap>(
     element.addEventListener(eventName, handler as EventListener);
 
     // Add cleanup to remove the event listener
-    E.addCleanup(event, () => {
+    E.onCleanup(event, () => {
         console.log(`Removing ${eventName} listener from`, element);
         element.removeEventListener(eventName, handler as EventListener);
     });
@@ -41,7 +41,7 @@ export function interval(period: number): Event<number> {
         id = setTimeout(loop, period);
     })();
 
-    E.addCleanup(input, () => {
+    E.onCleanup(input, () => {
         if (id) clearTimeout(id);
     });
 

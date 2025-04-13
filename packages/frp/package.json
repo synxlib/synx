@@ -24,14 +24,14 @@
             "default": "./src/reactive/index.ts"
         },
         "./event": {
-            "default": "./src/event/index.ts",
             "production": {
                 "import": "./dist/event/index.js",
                 "require": "./dist/event/index.cjs"
             },
             "development": {
                 "import": "./src/event/index.ts"
-            }
+            },
+            "default": "./src/event/index.ts"
         }
     },
     "scripts": {
