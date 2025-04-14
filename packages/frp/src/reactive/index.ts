@@ -7,7 +7,7 @@ export {
     get,
     subscribe,
     changes,
-    addCleanup,
+    onCleanup as addCleanup,
     cleanup,
     map,
     ap,

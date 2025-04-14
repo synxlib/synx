@@ -1,28 +1,27 @@
 import { on, bind, binds, inputValue, show, bindClass, bindClasses } from '@synx/dom';
-import { concat } from '@synx/dsl/string';
+import { concat, length } from '@synx/dsl/string';
 import { pipe, $ } from '@synx/dsl/pipe';
 import { not } from '@synx/dsl/logic';
-import { debounce, stepper } from '@synx/frp/event';
-import { map, of } from '@synx/frp/reactive';
+import * as E from '@synx/frp/event';
+import * as R from '@synx/frp/reactive';
+import { gt } from '@synx/dsl/logic';
 
 const input = document.getElementById('name') as HTMLElement;
 const result = document.getElementById('result') as HTMLElement;
 
 const valueEntered = pipe(on(input, 'input'))
-  .to(debounce, $, 50)
+  .to(E.debounce, $, 50)
   .to(inputValue, $)
-  .to(stepper, $, "")
+  .to(E.stepper, $, "")
   .value();
-
-// const inputValue = stepper(targetValue(debounce(on(input, 'input'), 50)), "")
 
 const resultValue = concat('Hello ', valueEntered);
 
 binds(result, {
     // show: inputValue,
     "classes": {
-        "text-green-700": map(valueEntered, v => v.length > 3),
-        block: map(valueEntered, (v) => !!v),
+        "text-green-700": gt(length(valueEntered), 3),
+        block: R.map(valueEntered, (v) => !!v),
         hidden: not(valueEntered),
     },
     text: resultValue,

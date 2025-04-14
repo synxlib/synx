@@ -1,4 +1,5 @@
-import { lift1, lift2, lift3 } from "@synx/frp/reactive";
+import { lift1, lift2, lift3, Reactive, of } from "@synx/frp/reactive";
+import * as R from "@synx/frp/reactive";
 
 
 const f0 = <R>(method: () => R) => (str: string): R => {
@@ -6,6 +7,7 @@ const f0 = <R>(method: () => R) => (str: string): R => {
 }
 
 const f1 = <A, R>(method: (arg: A) => R) => (str: string, arg: A): R => {
+    console.log("f1", str, arg);
     return method.call(str, arg);
 }
 
@@ -13,6 +15,7 @@ const f2 = <A, B, R>(method: (a: A, b: B) => R) => (str: string, a: A, b: B): R 
     return method.call(str, a, b);
 }
 
+export const length = lift1((str: string) => str.length);
 export const at = lift2(f1(String.prototype.at));
 export const charAt = lift2(f1(String.prototype.charAt));
 export const charCodeAt = lift2(f1(String.prototype.charCodeAt));

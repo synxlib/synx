@@ -38,8 +38,8 @@ export class ReactiveImpl<A> implements InternalReactive<A> {
 
         if (changeEvent) {
             const unsub = E.subscribe(changeEvent, (v) => {
+                console.log("Reactive change event:", v);
                 this.currentValue = v;
-                this.subscribers.forEach((sub) => sub(v));
             });
             this.cleanupFns.add(unsub);
         }
@@ -105,18 +105,20 @@ export function subscribe<A>(
     fn: (value: A) => void,
 ): () => void {
     const impl = r as ReactiveImpl<A>;
-    if (impl.subscribers == null) {
-        console.log("subscribers is null", impl);
-    }
-    impl.subscribers.push(fn);
-    fn(impl.currentValue); // emit current value immediately
-
-    const unsub = () => {
-        impl.subscribers = impl.subscribers.filter((f) => f !== fn);
-    };
-
-    impl.cleanupFns.add(unsub);
-    return unsub;
+    
+    // Get or create the change event for this reactive
+    const changeEvent = changes(impl);
+    
+    // Subscribe to the change event
+    const eventUnsub = E.subscribe(changeEvent, fn);
+    
+    // Call immediately with current value
+    fn(impl.currentValue);
+    
+    // Add to cleanup functions
+    impl.internalAddCleanup(eventUnsub);
+    
+    return eventUnsub;
 }
 
 export function changes<A>(r: InternalReactive<A>): Event<A> {
@@ -129,7 +131,8 @@ export function changes<A>(r: InternalReactive<A>): Event<A> {
     return impl.changeEvent;
 }
 
-export function addCleanup<A>(ev: Reactive<A>, fn: () => void): void {
+export function onCleanup<A>(ev: Reactive<A>, fn: () => void): void {
+
     const impl = ev as unknown as ReactiveImpl<A>;
     impl.internalAddCleanup(fn);
 }
@@ -149,6 +152,33 @@ export function cleanup<A>(r: Reactive<A>) {
 
 export function map<A, B>(r: Reactive<A>, fn: (a: A) => B): Reactive<B> {
     return ap(r, of(fn));
+}
+
+export function ap1<A, B>(
+    r: Reactive<A>,
+    rf: Reactive<(a: A) => B>,
+): Reactive<B> {
+    // Get initial value
+    const initialValue = get(rf)(get(r));
+    
+    // Get change events for both reactives
+    const aChanges = changes(r as InternalReactive<A>);
+    const fChanges = changes(rf as InternalReactive<(a: A) => B>);
+    
+    // Create transform functions for mergeWith
+    const whenValueChanges = (a: A) => get(rf)(a);
+    const whenFunctionChanges = (f: (a: A) => B) => f(get(r));
+    
+    // Use mergeWith to combine both change events
+    const combinedEvent = E.mergeWith(
+        aChanges,
+        fChanges,
+        whenValueChanges,
+        whenFunctionChanges
+    );
+    
+    // Create a new reactive with the initial value and combined event
+    return create(initialValue, combinedEvent);
 }
 
 export function ap<A, B>(
@@ -188,7 +218,6 @@ export function chain<A, B>(
         innerUnsub(); // cleanup previous inner
         inner = fn(a);
         result.currentValue = get(inner);
-        result.subscribers.forEach((f) => f(result.currentValue));
         innerUnsub = subscribe(inner, (b) => {
             result.currentValue = b;
             result.subscribers.forEach((f) => f(b));

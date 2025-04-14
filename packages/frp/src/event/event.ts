@@ -1,6 +1,7 @@
 import { Future } from "../future";
 import type { InternalReactive, Reactive } from "../reactive/reactive";
-import * as R from '../reactive/reactive';
+import * as E from "../event/event";
+import * as R from "../reactive/reactive";
 import { scheduleUpdate } from "../batch";
 
 /**
@@ -34,8 +35,6 @@ export class EventImpl<A> implements InternalEvent<A> {
         initial: A;
     };
 
-    // Tracking active subscriptions for cleanup
-    // activeSubscriptions: Set<() => void> = new Set();
     private cleanupFns = new Set<() => void>();
 
     /**
@@ -46,26 +45,11 @@ export class EventImpl<A> implements InternalEvent<A> {
         this.future = future;
     }
 
-    // internalAddSubscription(unsub: () => void) {
-    //     this.activeSubscriptions.add(unsub);
-    // }
-
     internalAddCleanup(fn: () => void) {
         this.cleanupFns.add(fn);
     }
 
     internalCleanup() {
-        // Subscriptions
-        // for (const unsub of this.activeSubscriptions) {
-        //     try {
-        //         unsub();
-        //     } catch (e) {
-        //         console.error("unsubscribe failed", e);
-        //     }
-        // }
-        // this.activeSubscriptions.clear();
-
-        // Cleanup hooks
         for (const fn of this.cleanupFns) {
             try {
                 fn();
@@ -100,7 +84,7 @@ export function create<A>(): [Event<A>, (value: A) => void] {
     /**
      * Since the initial value has not yet been emitted, we need a future
      * to represent that future initial value when the first emit happens.
-     * 
+     *
      * If we receive any subscribers before the first emit, we need to store them
      * and emit the initial value to them when we do emit it.
      */
@@ -170,12 +154,14 @@ export function empty<A>(): Event<A> {
 
 export function subscribe<A>(ev: Event<A>, fn: (a: A) => void): () => void {
     const impl = ev as unknown as EventImpl<A>;
-    const unsub = impl.future.run(fn);
-    // impl.internalAddSubscription(unsub);
-    return () => {
-        unsub();
-        // impl.activeSubscriptions.delete(unsub);
-    };
+    try {
+        return impl.future.run(fn);
+    } catch (error) {
+        console.error("Error in subscribe:", error);
+        return () => {
+            // No-op
+        };
+    }
 }
 
 export function onCleanup<A>(ev: Event<A>, fn: () => void): void {
@@ -225,7 +211,7 @@ export function mergeWith<A, B, C>(
                 console.error("Error in mergeWith handler:", error);
             }
         });
-        
+
         // Subscribe to the other event
         const sub1 = subscribe(other, (b) => {
             try {
@@ -234,7 +220,7 @@ export function mergeWith<A, B, C>(
                 console.error("Error in mergeWith handler:", error);
             }
         });
-        
+
         // Return a function that unsubscribes from both
         return () => {
             sub0();
@@ -269,7 +255,7 @@ export function filter<A>(
     predicate: (a: A) => boolean,
 ): Event<A> {
     const impl = ev as unknown as EventImpl<A>;
-    
+
     // Create a new future that filters the values
     const filteredFuture = impl.future.chain((a) => {
         // If the predicate passes, create a future with the value
@@ -281,7 +267,7 @@ export function filter<A>(
             return Future.never<A>();
         }
     });
-    
+
     return new EventImpl<A>(filteredFuture);
 }
 
@@ -312,22 +298,22 @@ export function fold<A, B>(
 
     // Keep track of accumulated value
     let acc = initial;
-    
+
     // Subscribe to this event
     const sub = subscribe(ev, (a) => {
-            try {
-                // Update accumulated value
-                acc = f(acc, a);
-                
+        try {
+            // Update accumulated value
+            acc = f(acc, a);
+
             // Update reactive
             (result as R.ReactiveImpl<B>).updateValueInternal(acc);
-            } catch (error) {
-                console.error("Error in fold function:", error);
-            }
+        } catch (error) {
+            console.error("Error in fold function:", error);
+        }
     });
-    
-    R.addCleanup(result, sub);
-    
+
+    R.onCleanup(result, sub);
+
     return result;
 }
 
@@ -336,9 +322,9 @@ export function fold<A, B>(
  */
 export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
     // Create queues to store values from each source
-        const queueA: A[] = [];
-        const queueB: B[] = [];
-        
+    const queueA: A[] = [];
+    const queueB: B[] = [];
+
     // Create a future that produces pairs
     const future = new Future<[A, B]>((handler) => {
         // Helper function to check and emit pairs
@@ -351,7 +337,7 @@ export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
                 handler(pairValue);
             }
         };
-        
+
         // Subscribe to this event
         const subA = subscribe(ev, (a) => {
             // Add the new value to queue A
@@ -359,7 +345,7 @@ export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
             // Try to emit a pair
             checkAndEmit();
         });
-        
+
         // Subscribe to the other event
         const subB = subscribe(other, (b) => {
             // Add the new value to queue B
@@ -367,7 +353,7 @@ export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
             // Try to emit a pair
             checkAndEmit();
         });
-        
+
         // Return function that unsubscribes from both
         return () => {
             subA();
@@ -377,7 +363,7 @@ export function zip<A, B>(ev: Event<A>, other: Event<B>): Event<[A, B]> {
             queueB.length = 0;
         };
     });
-    
+
     return new EventImpl<[A, B]>(future);
 }
 
@@ -436,37 +422,39 @@ export function batchCombine<A, B>(
  * Create a debounced event that only triggers after input stops
  */
 export function debounce<A>(ev: Event<A>, ms: number = 249): Event<A> {
-    let timeoutId: number | null = null;
+    let timeoutId: any = null;
     let latestValue: A | null = null;
     let hasValue = false;
 
-    return new EventImpl<A>(
-        new Future<A>((handler) => {
-            const subscription = subscribe(ev, (value) => {
-                latestValue = value;
-                hasValue = true;
+    const [event, emit] = E.create<A>();
 
-                if (timeoutId !== null) {
-                    clearTimeout(timeoutId);
-                }
+    const unsubscribe = subscribe(ev, (value) => {
+        latestValue = value;
+        hasValue = true;
 
-                timeoutId = window.setTimeout(() => {
-                    if (hasValue && latestValue !== null) {
-                        handler(latestValue);
-                    }
-                    timeoutId = null;
-                }, ms);
-            });
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+        }
 
-            return () => {
-                subscription();
-                if (timeoutId !== null) {
-                    clearTimeout(timeoutId);
-                }
-            };
-        }),
-    );
+        timeoutId = setTimeout(() => {
+            if (hasValue && latestValue !== null) {
+                emit(latestValue);
+                hasValue = false;
+                latestValue = null;
+            }
+            timeoutId = null;
+        }, ms);
+    });
+
+    E.onCleanup(event, () => {
+        console.log("Calling cleanup for debounce event");
+        clearTimeout(timeoutId);
+        unsubscribe();
+    });
+
+    return event;
 }
+
 
 /**
  * Create a throttled event that only triggers at most once per interval
@@ -584,11 +572,11 @@ export function switchE1<A>(
 ): Event<A> {
     // Create a new event to act as the merged stream
     const [resultEvent, emitResult] = create<A>();
-    
+
     // Keep track of the current event and subscription
     let currentEvent = initialEvent;
     let currentSubscription: (() => void) | null = null;
-    
+
     // Function to subscribe to the current event
     const subscribeToCurrentEvent = () => {
         // Clean up previous subscription if it exists
@@ -596,35 +584,35 @@ export function switchE1<A>(
             currentSubscription();
             currentSubscription = null;
         }
-        
+
         // Create a new subscription to the current event
         currentSubscription = subscribe(currentEvent, (value) => {
             emitResult(value);
         });
     };
-    
+
     // Initially subscribe to the current event
     subscribeToCurrentEvent();
-    
+
     // Subscribe to the event of events
     const eventsSubscription = subscribe(eventOfEvents, (newEvent) => {
         // Update the current event
         currentEvent = newEvent;
-        
+
         // Subscribe to the new event
         subscribeToCurrentEvent();
     });
-    
+
     // Add cleanup function to the result event
     onCleanup(resultEvent, () => {
         if (currentSubscription) {
             currentSubscription();
             currentSubscription = null;
         }
-        
+
         eventsSubscription();
     });
-    
+
     return resultEvent;
 }
 
