@@ -32,36 +32,3 @@ binds(result, {
 // });
 // bind(result, "text", resultValue);
 // show(result, inputValue);
-
-// Future
-// Input.ts
-// const initialValue = E.create<string>();
-
-// const inputEv = E.create<string>();
-// const value = stepper(E.concat([initialValue, inputEv]), "");
-
-// const el = div({ on: { input: inputEv } },
-//   input({ ref: 'input' }),
-//   div({ ref: 'result' }, bind.text(value))
-// );
-
-// export const HelloWorld = { el, props: { initialValue }, outputs: { value } };
-
-
-// Parent.ts
-// import Input from './Input.ts';
-
-// const el = div({},
-//   h1({}, "Enter your name:"),
-//   child(Input, { initialValue: "World" }),
-//   div({ ref: 'greeting' }, bind.text(
-//     Input.outputs.value.map(name => `Hello, ${name}!`)
-//   ))
-// );
-
-// export const Parent = { el, props: {}, outputs: {} };
-
-// root.ts
-// import Parent from './Parent.ts';
-
-// document.body.appendChild(Parent.el);

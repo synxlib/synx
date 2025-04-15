@@ -31,8 +31,12 @@ export type SynxProps<K extends keyof HTMLElementTagNameMap> = {
         | Reactive<JSX.HTMLAttributes<HTMLElementTagNameMap[K]>[P]>;
 } & {
     ref?: (el: HTMLElementTagNameMap[K]) => void;
-    on?: Record<string, [Event<any>, (e: globalThis.Event) => void]>;
-    // Enhanced class handling
+    on?: {
+        [E in keyof HTMLElementEventMap]?: [
+            Event<HTMLElementEventMap[E]>, 
+            (e: HTMLElementEventMap[E]) => void
+        ]
+    };
     class?: ClassValue;
     className?: ClassValue; // For JSX compatibility
     style?: JSX.CSSProperties | Reactive<JSX.CSSProperties>;
@@ -53,11 +57,11 @@ export function h<K extends keyof HTMLElementTagNameMap>(
                 Object.assign(el.style, value);
             } else if (key === "on" && value && typeof value === "object") {
                 for (const [eventName, ev] of Object.entries(value)) {
-                    const [_, emit] = ev as [
-                        Event<globalThis.Event>,
-                        (e: globalThis.Event) => void,
-                    ];
-                    el.addEventListener(eventName, emit);
+                    if (Array.isArray(ev)) {
+                        const [_, emit] = ev;
+                        // Type safety is maintained through the EventTypeMap
+                        el.addEventListener(eventName, emit as EventListener);
+                    }
                 }
             } else if (key === "class" || key === "className") {
                 // Handle various class formats

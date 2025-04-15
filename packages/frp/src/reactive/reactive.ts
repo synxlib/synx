@@ -105,19 +105,19 @@ export function subscribe<A>(
     fn: (value: A) => void,
 ): () => void {
     const impl = r as ReactiveImpl<A>;
-    
+
     // Get or create the change event for this reactive
     const changeEvent = changes(impl);
-    
+
     // Subscribe to the change event
     const eventUnsub = E.subscribe(changeEvent, fn);
-    
+
     // Call immediately with current value
     fn(impl.currentValue);
-    
+
     // Add to cleanup functions
     impl.internalAddCleanup(eventUnsub);
-    
+
     return eventUnsub;
 }
 
@@ -132,7 +132,6 @@ export function changes<A>(r: InternalReactive<A>): Event<A> {
 }
 
 export function onCleanup<A>(ev: Reactive<A>, fn: () => void): void {
-
     const impl = ev as unknown as ReactiveImpl<A>;
     impl.internalAddCleanup(fn);
 }
@@ -160,23 +159,23 @@ export function ap1<A, B>(
 ): Reactive<B> {
     // Get initial value
     const initialValue = get(rf)(get(r));
-    
+
     // Get change events for both reactives
     const aChanges = changes(r as InternalReactive<A>);
     const fChanges = changes(rf as InternalReactive<(a: A) => B>);
-    
+
     // Create transform functions for mergeWith
     const whenValueChanges = (a: A) => get(rf)(a);
     const whenFunctionChanges = (f: (a: A) => B) => f(get(r));
-    
+
     // Use mergeWith to combine both change events
     const combinedEvent = E.mergeWith(
         aChanges,
         fChanges,
         whenValueChanges,
-        whenFunctionChanges
+        whenFunctionChanges,
     );
-    
+
     // Create a new reactive with the initial value and combined event
     return create(initialValue, combinedEvent);
 }
@@ -227,4 +226,27 @@ export function chain<A, B>(
     result.cleanupFns.add(innerUnsub);
     result.cleanupFns.add(outerUnsub);
     return result;
+}
+
+export function switchB<A>(
+    initial: Reactive<A>,
+    eventOfReactives: Event<Reactive<A>>,
+): Reactive<A> {
+    const initialValue = get(initial);
+    const initialEvent = changes(initial as InternalReactive<A>);
+
+    const switchedEvent = E.switchE(
+        initialEvent,
+        E.map(eventOfReactives, (r) => changes(r as InternalReactive<A>)),
+    );
+
+    return create(initialValue, switchedEvent);
+}
+
+export function initialThen<A>(
+    initial: Reactive<A>,
+    trigger: Event<any>,
+    next: () => Reactive<A>,
+): Reactive<A> {
+    return switchB(initial, E.map(trigger, next));
 }

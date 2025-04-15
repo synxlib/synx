@@ -79,4 +79,3 @@ export function defineComponent<T extends ReturnType<ComponentFactory>>(
         return instance;
     };
 }
-
