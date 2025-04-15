@@ -3,17 +3,23 @@ import * as R from "@synx/frp/reactive";
 import {
     defineComponent,
     Ref,
-    refOutputs,
+    refOutput,
 } from "@synx/dom/component";
 import {
     div,
     h1,
 } from "@synx/dom/tags";
 import { Input } from "./input";
+import { length } from "@synx/dsl/string";
+import { gt, ifElse, orElse } from "@synx/dsl/logic";
 
 function createPage() {
     // Reference to get access to the input component instance
     const inputRef = Ref<ReturnType<typeof Input>>();
+
+    const inputText = refOutput(inputRef, "value");
+
+    const isValidText = gt(length(orElse(inputText, "")), 3);
 
     // Create the page structure
     const el = div(
@@ -23,7 +29,9 @@ function createPage() {
             initialValue: "World",
             ref: inputRef,
         }).el,
-        div({}, "Hello, ", refOutputs(inputRef, "value")),
+        div({
+            class: { "mt-2 font-bold": true, "text-green-700": isValidText },
+        }, "Hello, ", inputText, "!"),
     );
 
     return {

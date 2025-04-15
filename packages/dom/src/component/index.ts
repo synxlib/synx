@@ -1,5 +1,13 @@
 import { create as createEvent, Event, stepper } from "@synx/frp/event";
-import { Reactive, get, isReactive, subscribe, chain, map } from "@synx/frp/reactive";
+import {
+    Reactive,
+    get,
+    isReactive,
+    subscribe,
+    chain,
+    map,
+    of,
+} from "@synx/frp/reactive";
 
 export type ComponentFactory = () => {
     el: Node;
@@ -7,8 +15,7 @@ export type ComponentFactory = () => {
     outputs: Record<string, Reactive<any>>;
 };
 
-type ExtractPropType<P> = 
-  P extends { prop: Reactive<infer A> } ? A : never;
+type ExtractPropType<P> = P extends { prop: Reactive<infer A> } ? A : never;
 
 type PropInput<P> = ExtractPropType<P> | Reactive<ExtractPropType<P>>;
 
@@ -31,13 +38,16 @@ export function Ref<T>() {
     return { ref, set } as const;
 }
 
-export function refOutputs<T extends ReturnType<ComponentFactory>>(ref: RefObject<T>, outputName?: string) {
-    if (outputName) {
-        return chain(ref.ref, (r) => r.outputs[outputName]);
-    } else {
-        return map(ref.ref, (r) => r.outputs);
-    }
-}
+export const refOutput = <T>(
+    r: { ref: Reactive<{ outputs?: Record<string, Reactive<T>> } | undefined> },
+    n: string,
+    defaultValue?: T
+): Reactive<T> => {
+    return chain(
+        map(r.ref, (_r) => (_r?.outputs || {})),
+        (o) => o[n] || of(defaultValue)
+    );
+};
 
 export function defineComponent<T extends ReturnType<ComponentFactory>>(
     create: () => T,
