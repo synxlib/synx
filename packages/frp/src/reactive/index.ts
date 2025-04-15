@@ -7,13 +7,13 @@ export {
     get,
     subscribe,
     changes,
-    onCleanup as addCleanup,
+    onCleanup,
     cleanup,
     map,
     ap,
     chain,
     switchB,
-    initialThen
+    initialThen,
 } from "./reactive";
 
 export { lift, lift1, lift2, lift3, liftAll } from "./lift";

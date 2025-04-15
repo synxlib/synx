@@ -35,7 +35,7 @@ describe("Event", () => {
 
             // First subscription
             const values1: number[] = [];
-            const subscription1 = E.subscribe(event, (value) => {
+            const subscription1 = E.subscribe(event, (value: number) => {
                 values1.push(value);
             });
 
@@ -2062,7 +2062,7 @@ describe("Event", () => {
             expect(currentEventCleanupCalled).toBe(true);
 
             // Restore original function
-            // addCleanupSpy.mockRestore();
+            // onCleanupSpy.mockRestore();
         });
 
         // Test for handling errors during event emission

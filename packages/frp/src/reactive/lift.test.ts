@@ -306,22 +306,4 @@ describe("lift functions", () => {
             expect(R.get(result)).toBe("x-y-z");
         });
     });
-
-    // Issue: The original code uses R.addCleanup but the updated code seems to use R.onCleanup
-    // it("handles error in R.onCleanup (was R.addCleanup) function", () => {
-    //     // This test checks whether this code properly handles the difference
-    //     // between the function in lift.ts (R.onCleanup) and what's actually
-    //     // available in reactive.ts (R.addCleanup)
-
-    //     const add = (a: number, b: number) => a + b;
-    //     const liftedAdd = lift(add);
-
-    //     const reactiveA = trackReactive(R.of(5));
-    //     const reactiveB = trackReactive(R.of(10));
-
-    //     expect(() => {
-    //         const result = liftedAdd(reactiveA, reactiveB);
-    //         trackReactive(result as Reactive<number>);
-    //     }).not.toThrow();
-    // });
 });

@@ -1,4 +1,4 @@
-import { Event, create, addCleanup } from "@synx/frp/event";
+import { Event, create, onCleanup } from "@synx/frp/event";
 
 export function on<K extends keyof HTMLElementEventMap>(
     el: HTMLElement,
@@ -53,7 +53,7 @@ export function on<K extends keyof HTMLElementEventMap>(
         passive: options.passive,
     });
 
-    addCleanup(event, () => {
+    onCleanup(event, () => {
         target.removeEventListener(eventName, handler, {
             capture: options.capture,
         });

@@ -62,3 +62,4 @@ export const sort = R.lift2(f1(Array.prototype.sort));
 export const splice = R.lift3(f2(Array.prototype.splice));
 export const unshift = R.lift2(f1(Array.prototype.unshift));
 export const values = R.lift1(f0(Array.prototype.values));
+export const length = R.lift1((list: any[]) => list.length);

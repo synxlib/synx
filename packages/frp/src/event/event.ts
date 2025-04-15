@@ -447,7 +447,6 @@ export function debounce<A>(ev: Event<A>, ms: number = 249): Event<A> {
     });
 
     E.onCleanup(event, () => {
-        console.log("Calling cleanup for debounce event");
         clearTimeout(timeoutId);
         unsubscribe();
     });
@@ -465,42 +464,43 @@ export function throttle<A>(ev: Event<A>, ms: number = 249): Event<A> {
     let latestValue: A | null = null;
     let hasValue = false;
 
-    return new EventImpl<A>(
-        new Future<A>((handler) => {
-            const subscription = subscribe(ev, (value) => {
-                const now = Date.now();
-                latestValue = value;
-                hasValue = true;
+    const [event, emit] = E.create<A>();
 
-                if (now - lastFireTime >= ms) {
-                    // Enough time has passed since last emission
-                    lastFireTime = now;
-                    handler(value);
+    const subscription = subscribe(ev, (value) => {
+        const now = Date.now();
+        latestValue = value;
+        hasValue = true;
+
+        if (now - lastFireTime >= ms) {
+            // Enough time has passed since last emission
+            lastFireTime = now;
+            emit(value);
+            hasValue = false;
+        } else if (timeoutId === null) {
+            // Schedule a future emission
+            timeoutId = window.setTimeout(
+                () => {
+                    if (hasValue && latestValue !== null) {
+                        lastFireTime = Date.now();
+                        emit(latestValue);
+                    }
+                    timeoutId = null;
                     hasValue = false;
-                } else if (timeoutId === null) {
-                    // Schedule a future emission
-                    timeoutId = window.setTimeout(
-                        () => {
-                            if (hasValue && latestValue !== null) {
-                                lastFireTime = Date.now();
-                                handler(latestValue);
-                            }
-                            timeoutId = null;
-                            hasValue = false;
-                        },
-                        ms - (now - lastFireTime),
-                    );
-                }
-            });
+                },
+                ms - (now - lastFireTime),
+            );
+        }
 
-            return () => {
-                subscription();
-                if (timeoutId !== null) {
-                    clearTimeout(timeoutId);
-                }
-            };
-        }),
-    );
+    });
+
+    E.onCleanup(event, () => {
+        subscription();
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+        }
+    });
+
+    return event;
 }
 
 export function zipAll<T extends any[]>(

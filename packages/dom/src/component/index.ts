@@ -8,6 +8,7 @@ import {
     map,
     of,
 } from "@synx/frp/reactive";
+import { children as applyChildren } from "../children";
 
 export type ComponentFactory = () => {
     el: Node;
@@ -41,25 +42,48 @@ export function Ref<T>() {
 export const refOutput = <T>(
     r: { ref: Reactive<{ outputs?: Record<string, Reactive<T>> } | undefined> },
     n: string,
-    defaultValue?: T
+    defaultValue?: T,
 ): Reactive<T> => {
     return chain(
-        map(r.ref, (_r) => (_r?.outputs || {})),
-        (o) => o[n] || of(defaultValue)
+        map(r.ref, (_r) => _r?.outputs || {}),
+        (o) => o[n] || of(defaultValue),
     );
 };
 
-export function defineComponent<T extends ReturnType<ComponentFactory>>(
-    create: () => T,
+type Propify<T> = {
+    [K in keyof T]: {
+        prop: Reactive<T[K]>;
+        emit: (value: T[K]) => void;
+    };
+};
+
+export function defineComponent<
+    InitialProps extends Record<string, unknown>,
+    T extends {
+        el: HTMLElement;
+        props: Propify<InitialProps>;
+        outputs: any;
+    }
+>(
+    create: (initialProps: InitialProps) => T
 ): (
-    props: ComponentInputProps<T> & {
+    props: {
         ref?: RefObject<T>;
-    },
+    } & {
+        [K in keyof InitialProps]: InitialProps[K] | Reactive<InitialProps[K]>;
+    }
 ) => T {
     return (props) => {
-        const instance = create();
-
         const { ref, ...rest } = props ?? {};
+
+        const instance = create(
+            Object.fromEntries(
+                Object.entries(rest).map(([k, v]) => [
+                    k,
+                    isReactive(v) ? get(v) : v,
+                ]),
+            ) as InitialProps,
+        );
 
         if (ref) {
             ref.set(instance);
@@ -77,5 +101,51 @@ export function defineComponent<T extends ReturnType<ComponentFactory>>(
         }
 
         return instance;
+    };
+}
+
+export function children<T>(
+    list: Reactive<T[]>,
+    create: (item: T, index: number) => Node,
+): (parent: HTMLElement) => () => void;
+
+export function children<T>(
+    list: Reactive<T[]>,
+    config: {
+        create: (item: T, index: number) => Node;
+        update?: (node: Node, item: T, index: number) => void;
+        shouldUpdate?: (prev: T, next: T) => boolean;
+        key?: (item: T) => string | number;
+    },
+): (parent: HTMLElement) => () => void;
+
+export function children<T>(
+    list: Reactive<T[]>,
+    arg:
+        | ((item: T, index: number) => Node)
+        | {
+              create: (item: T, index: number) => Node;
+              update?: (node: Node, item: T, index: number) => void;
+              shouldUpdate?: (prev: T, next: T) => boolean;
+              key?: (item: T) => string | number;
+          },
+) {
+    return (parent: HTMLElement) => {
+        const config = typeof arg === "function" ? { create: arg } : arg;
+
+        // const initialChildren = get(list);
+        // const fragment = document.createDocumentFragment();
+        // fragment.append(
+        //     ...initialChildren.map((item, index) => config.create(item, index)),
+        // );
+        // parent.appendChild(fragment);
+
+        return applyChildren(parent, {
+            each: list,
+            create: config.create,
+            update: config.update,
+            shouldUpdate: config.shouldUpdate,
+            key: config.key,
+        });
     };
 }

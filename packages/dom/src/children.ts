@@ -17,7 +17,7 @@ export function children<T>(
 
     const { each, create, update } = config;
 
-    subscribe(each, (newItems) => {
+    return subscribe(each, (newItems) => {
         const newLen = newItems.length;
 
         if (newLen === 0) {

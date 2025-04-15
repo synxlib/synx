@@ -13,7 +13,8 @@ export type Child =
     | null
     | undefined
     | Reactive<string>
-    | ReturnType<ComponentFactory>;
+    | ReturnType<ComponentFactory>
+    | ((parent: HTMLElement) => void | (() => void));
 
 export type Children = Child | Child[];
 
@@ -22,23 +23,20 @@ export type ClassValue =
     | Reactive<string>
     | Record<string, boolean | Reactive<boolean>>;
 
-export type SynxProps<K extends keyof HTMLElementTagNameMap> = {
-    [P in keyof Omit<
-        JSX.HTMLAttributes<HTMLElementTagNameMap[K]>,
-        "className" | "class"
-    >]?:
-        | JSX.HTMLAttributes<HTMLElementTagNameMap[K]>[P]
-        | Reactive<JSX.HTMLAttributes<HTMLElementTagNameMap[K]>[P]>;
+export type SynxProps<K extends keyof JSX.IntrinsicElements> = {
+    [P in keyof Omit<JSX.IntrinsicElements[K], "class" | "className">]?:
+        | JSX.IntrinsicElements[K][P]
+        | Reactive<JSX.IntrinsicElements[K][P]>;
 } & {
-    ref?: (el: HTMLElementTagNameMap[K]) => void;
+    ref?: (el: JSX.IntrinsicElements[K]) => void;
     on?: {
         [E in keyof HTMLElementEventMap]?: [
-            Event<HTMLElementEventMap[E]>, 
-            (e: HTMLElementEventMap[E]) => void
-        ]
+            Event<HTMLElementEventMap[E]>,
+            (e: HTMLElementEventMap[E]) => void,
+        ];
     };
     class?: ClassValue;
-    className?: ClassValue; // For JSX compatibility
+    className?: ClassValue;
     style?: JSX.CSSProperties | Reactive<JSX.CSSProperties>;
 };
 
@@ -85,7 +83,7 @@ export function h<K extends keyof HTMLElementTagNameMap>(
                         if (typeof condition === "boolean") {
                             if (condition) {
                                 const classNames = className.split(/\s+/);
-                                classNames.forEach(name => {
+                                classNames.forEach((name) => {
                                     if (name) el.classList.add(name);
                                 });
                             }
@@ -122,6 +120,9 @@ function appendChild(parent: HTMLElement, child: Child) {
         parent.appendChild(child.el);
     } else if (child instanceof Node) {
         parent.appendChild(child);
+    } else if (typeof child === "function") {
+        const dispose = child(parent);
+        // TODO Store disposer if needed
     }
 }
 

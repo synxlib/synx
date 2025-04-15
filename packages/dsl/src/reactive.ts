@@ -1,5 +1,5 @@
 import type { Reactive } from "@synx/frp/reactive";
-import { isReactive, get, of, subscribe, addCleanup } from "@synx/frp/reactive";
+import { isReactive, get, of, subscribe, onCleanup } from "@synx/frp/reactive";
 
 /**
  * Combines multiple reactive values into a single reactive object
@@ -34,7 +34,7 @@ export function combine<T extends Record<string, any>>(obj: {
         }
     }
 
-    addCleanup(result, () => {
+    onCleanup(result, () => {
         subscriptions.forEach((unsub) => unsub());
     });
 

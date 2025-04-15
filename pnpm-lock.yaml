@@ -59,6 +59,31 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4
 
+  packages/demos/todo:
+    dependencies:
+      '@synx/dom':
+        specifier: workspace:0.1.0
+        version: link:../../dom
+      '@synx/dsl':
+        specifier: workspace:0.1.0
+        version: link:../../dsl
+      '@synx/frp':
+        specifier: workspace:0.1.0
+        version: link:../../frp
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4.1.4
+        version: 4.1.4
+      parcel:
+        specifier: ^2.14.4
+        version: 2.14.4(@swc/helpers@0.5.17)(postcss@8.5.3)(typescript@5.8.3)
+      postcss:
+        specifier: ^8.2.1
+        version: 8.5.3
+      tailwindcss:
+        specifier: ^4.1.4
+        version: 4.1.4
+
   packages/dom:
     dependencies:
       '@synx/frp':

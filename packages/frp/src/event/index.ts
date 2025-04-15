@@ -5,7 +5,7 @@ export {
     never,
     empty,
     subscribe,
-    onCleanup as addCleanup,
+    onCleanup,
     cleanup,
     map,
     filter,
