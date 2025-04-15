@@ -2,7 +2,38 @@
     "name": "@synx/dom",
     "version": "0.1.0",
     "description": "",
-    "main": "src/index.ts",
+    "exports": {
+        ".": {
+            "production": {
+                "import": "./dist/index.js",
+                "require": "./dist/index.cjs"
+            },
+            "development": {
+                "import": "./src/index.ts"
+            },
+            "default": "./src/index.ts"
+        },
+        "./tags": {
+            "production": {
+                "import": "./dist/tags/index.js",
+                "require": "./dist/tags/index.cjs"
+            },
+            "development": {
+                "import": "./src/tags/index.ts"
+            },
+            "default": "./src/tags/index.ts"
+        },
+        "./component": {
+            "production": {
+                "import": "./dist/component/index.js",
+                "require": "./dist/component/index.cjs"
+            },
+            "development": {
+                "import": "./src/component/index.ts"
+            },
+            "default": "./src/component/index.ts"
+        }
+    },
     "scripts": {
         "test": "vitest src/"
     },

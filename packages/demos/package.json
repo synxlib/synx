@@ -15,5 +15,8 @@
   },
   "@parcel/resolver-default": {
     "packageExports": true
+  },
+  "devDependencies": {
+    "parcel": "^2.14.4"
   }
 }

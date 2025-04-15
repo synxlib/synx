@@ -435,7 +435,7 @@ describe("Reactive", () => {
             b: R.Reactive<T>,
             message?: string,
         ) => {
-            expect(R.get(a)).toEqual(R.get(b), message);
+            expect(R.get(a), message).toEqual(R.get(b));
         };
 
         /**
@@ -1062,7 +1062,7 @@ describe("Reactive", () => {
             b: R.Reactive<T>,
             message?: string,
         ) => {
-            expect(R.get(a)).toEqual(R.get(b), message);
+            expect(R.get(a), message).toEqual(R.get(b));
         };
 
         /**
@@ -1330,7 +1330,7 @@ describe("Reactive", () => {
             b: R.Reactive<T>,
             message?: string,
         ) => {
-            expect(R.get(a)).toEqual(R.get(b), message);
+            expect(R.get(a), message).toEqual(R.get(b));
         };
 
         /**

@@ -33,7 +33,7 @@ describe("lift functions", () => {
 
         it("works with one reactive argument", () => {
             const add = (a: number, b: number) => a + b;
-            const liftedAdd = lift(add);
+            const liftedAdd = lift2(add);
 
             const reactiveA = trackReactive(R.of(5));
             const result = liftedAdd(reactiveA, 10);
@@ -44,7 +44,7 @@ describe("lift functions", () => {
 
         it("works with multiple reactive arguments", () => {
             const add = (a: number, b: number) => a + b;
-            const liftedAdd = lift(add);
+            const liftedAdd = lift2(add);
 
             const reactiveA = trackReactive(R.of(5));
             const reactiveB = trackReactive(R.of(10));
@@ -87,7 +87,7 @@ describe("lift functions", () => {
             const formatPerson = (person: Person, prefix: string) =>
                 `${prefix} ${person.name} (${person.age})`;
 
-            const liftedFormat = lift(formatPerson);
+            const liftedFormat = lift2(formatPerson);
 
             const person = trackReactive(R.of({ name: "Alice", age: 30 }));
             const prefix = trackReactive(R.of("Ms."));
@@ -122,7 +122,7 @@ describe("lift functions", () => {
 
         it("properly cleans up subscriptions", () => {
             const add = (a: number, b: number) => a + b;
-            const liftedAdd = lift(add);
+            const liftedAdd = lift2(add);
 
             const reactiveA = trackReactive(R.create(5));
             const reactiveB = trackReactive(R.create(10));

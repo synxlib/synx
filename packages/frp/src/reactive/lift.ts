@@ -172,65 +172,6 @@ export function lift3<A, B, C, R>(
     return lift(fn) as any;
 }
 
-export function _lift2<A, B, R>(fn: (a: A, b: B) => R) {
-    return (a: A | Reactive<A>, b: B | Reactive<B>) => {
-        if (R.isReactive(a)) {
-            if (R.isReactive(b)) {
-                // Both arguments are reactive
-                return R.ap(
-                    b as Reactive<B>,
-                    R.map(
-                        a as Reactive<A>,
-                        (aVal: A) => (bVal: B) => fn(aVal, bVal),
-                    ),
-                );
-            } else {
-                // Only first argument is reactive
-                return R.map(a as Reactive<A>, (aVal: A) => fn(aVal, b as B));
-            }
-        } else if (R.isReactive(b)) {
-            // Only second argument is reactive
-            return R.map(b as Reactive<B>, (bVal: B) => fn(a as A, bVal));
-        } else {
-            // Neither argument is reactive
-            return R.of(fn(a as A, b as B));
-        }
-    };
-}
-
-/**
- * Lifts a ternary function to work with Reactive values
- * Uses map and ap directly for better performance
- */
-export function _lift3<A, B, C, R>(fn: (a: A, b: B, c: C) => R) {
-    return (a: A | Reactive<A>, b: B | Reactive<B>, c: C | Reactive<C>) => {
-        // Convert function to curried form for ap
-        const curriedFn = (aVal: A) => (bVal: B) => (cVal: C) =>
-            fn(aVal, bVal, cVal);
-
-        if (R.isReactive(a)) {
-            // Start with a reactive function that takes b and c
-            const rf = R.map(a as Reactive<A>, curriedFn);
-
-            // Apply b
-            const rfb = R.isReactive(b)
-                ? R.ap(b as Reactive<B>, rf)
-                : R.map(rf, (f) => f(b as B));
-
-            // Apply c
-            return R.isReactive(c)
-                ? R.ap(c as Reactive<C>, rfb)
-                : R.map(rfb, (f) => f(c as C));
-        } else {
-            // Start with a non-reactive function that takes b and c
-            const f = curriedFn(a as A);
-
-            // Apply remaining arguments
-            return lift2((bVal: B, cVal: C) => f(bVal)(cVal))(b, c);
-        }
-    };
-}
-
 /**
  * Creates an object with lifted versions of every function in an object
  */
@@ -249,4 +190,3 @@ export function liftAll<T extends Record<string, (...args: any[]) => any>>(
 
     return result;
 }
-
