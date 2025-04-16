@@ -8,7 +8,6 @@ export function bindClass(
     el.classList.toggle(className, get(reactive));
 
     return subscribe(reactive, (value) => {
-        console.log("Toggling class", value);
         el.classList.toggle(className, value);
     });
 }

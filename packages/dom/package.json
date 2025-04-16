@@ -23,6 +23,16 @@
             },
             "default": "./src/tags/index.ts"
         },
+        "./routing": {
+            "production": {
+                "import": "./dist/routing/index.js",
+                "require": "./dist/routing/index.cjs"
+            },
+            "development": {
+                "import": "./src/routing/index.ts"
+            },
+            "default": "./src/routing/index.ts"
+        },
         "./component": {
             "production": {
                 "import": "./dist/component/index.js",

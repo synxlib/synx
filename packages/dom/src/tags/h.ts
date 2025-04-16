@@ -31,10 +31,7 @@ export type SynxProps<K extends keyof JSX.IntrinsicElements> = {
 } & {
     ref?: (el: JSX.IntrinsicElements[K]) => void;
     on?: {
-        [E in keyof HTMLElementEventMap]?: [
-            Event<HTMLElementEventMap[E]>,
-            (e: HTMLElementEventMap[E]) => void,
-        ];
+        [E in keyof HTMLElementEventMap]?: (e: HTMLElementEventMap[E]) => void;
     };
     class?: ClassValue;
     className?: ClassValue;
@@ -55,10 +52,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(
             } else if (key === "style" && value && typeof value === "object") {
                 Object.assign(el.style, value);
             } else if (key === "on" && value && typeof value === "object") {
-                for (const [eventName, ev] of Object.entries(value)) {
-                    if (Array.isArray(ev)) {
-                        const [_, emit] = ev;
-                        // Type safety is maintained through the EventTypeMap
+                for (const [eventName, emit] of Object.entries(value)) {
+                    if (typeof emit === "function") {
                         el.addEventListener(eventName, emit as EventListener);
                     }
                 }
@@ -98,7 +93,7 @@ export function h<K extends keyof HTMLElementTagNameMap>(
             } else if (value != null && value !== false) {
                 // el.setAttribute(key, String(value));
                 if (isReactive(value)) {
-                    bind(el, key, value);
+                    bind(el, key as any, value);
                 } else {
                     if (typeof value === "boolean") {
                         if (value) el.setAttribute(key, "");

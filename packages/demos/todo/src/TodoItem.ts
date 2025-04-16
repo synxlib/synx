@@ -23,7 +23,7 @@ function createTodo(initial: { todo: Todo }) {
     const el = li(
         { class: "flex justify-between gap-2 items-center p-2" },
         input({ type: "checkbox", checked: prop(todo.prop, "completed"), on: {
-            input: [toggleEv, emitToggle]
+            input: emitToggle
         }}),
         span(
             {
@@ -39,7 +39,7 @@ function createTodo(initial: { todo: Todo }) {
                 class: "cursor-pointer",
                 type: "button",
                 on: {
-                    click: [deleteEv, emitDelete]
+                    click: emitDelete
                 }
             },
             "✖",
