@@ -1,5 +1,5 @@
-import { R } from "@synx/frp";
-import { defineComponent, Prop, children } from "@synx/dom/component";
+import { E, R } from "@synx/frp";
+import { defineComponent, Prop, Ref, children, refOutput } from "@synx/dom/component";
 import { Todo } from "./domain/todo";
 import { ul } from "@synx/dom/tags";
 import { TodoItem } from "./TodoItem";
@@ -7,21 +7,35 @@ import { TodoItem } from "./TodoItem";
 function createTodos(initial: { todos: Todo[] }) {
     const todos = Prop(initial.todos);
 
-    R.subscribe(todos.prop, (t) => {
-        console.log("Todos changed", t);
-    });
-
-    const el = ul(
-        {},
-        children(todos.prop, (todo) => TodoItem({ todo }).el)
+    const todosWithOutputs = R.map(todos.prop, (list) =>
+        list.map((todo, i) => {
+          const inst = TodoItem({ todo });
+          return { el: inst.el, completed: inst.outputs.completed, deleted: inst.outputs.deleted };
+        })
     );
+      
+    const el = ul({}, children(todosWithOutputs, (item) => item.el));
+      
+    const completedEvents = R.map(todosWithOutputs, (items) =>
+        items.map((item) => item.completed)
+    );
+      
+    const anyCompleted = R.concatE(completedEvents);
+
+    const deleteEvents = R.concatE(R.map(todosWithOutputs, (items) =>
+        items.map((item) => item.deleted)
+    ));
+
+    E.subscribe(deleteEvents, (completed) => {
+        console.log("deleteEvent", completed);
+    });
 
     return {
         el,
         props: {
             todos,
         },
-        outputs: {}
+        outputs: { completed: anyCompleted, deleted: deleteEvents },
     };
 }
 

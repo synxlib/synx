@@ -1,4 +1,5 @@
 import { create as createEvent, Event, stepper } from "@synx/frp/event";
+import * as E from "@synx/frp/event";
 import {
     Reactive,
     get,
@@ -13,7 +14,7 @@ import { children as applyChildren } from "../children";
 export type ComponentFactory = () => {
     el: Node;
     props: Record<string, { prop: Reactive<any>; emit: (value: any) => void }>;
-    outputs: Record<string, Reactive<any>>;
+    outputs: Record<string, Event<any>>;
 };
 
 type ExtractPropType<P> = P extends { prop: Reactive<infer A> } ? A : never;
@@ -30,24 +31,29 @@ export const Prop = <A>(initial: A) => {
     return { prop, emit };
 };
 
-type RefObject<T> = { ref: Reactive<T>; set: (val: T) => void };
+type RefObject<T> = { ref: Event<T>; set: (val: T) => void };
 
 export function Ref<T>() {
     const [ev, emit] = createEvent<T>();
-    const ref = stepper(ev, undefined as unknown as T);
-    const set = (val: T) => emit(val);
-    return { ref, set } as const;
+    return { ref: ev, set: emit } as const;
 }
 
 export const refOutput = <T>(
-    r: { ref: Reactive<{ outputs?: Record<string, Reactive<T>> } | undefined> },
+    r: { ref: Event<{ outputs?: Record<string, Event<T>> } | undefined> },
     n: string,
     defaultValue?: T,
-): Reactive<T> => {
-    return chain(
-        map(r.ref, (_r) => _r?.outputs || {}),
-        (o) => o[n] || of(defaultValue),
+): Event<T> => {
+    const fallback =
+        defaultValue !== undefined ? E.of(defaultValue) : E.never<T>();
+
+    const outputValue: Event<Event<T>> = E.map(
+        r.ref,
+        (v) => v?.outputs?.[n] ?? fallback,
     );
+
+    const initial = fallback;
+
+    return E.switchE(initial, outputValue);
 };
 
 type Propify<T> = {
@@ -63,15 +69,15 @@ export function defineComponent<
         el: HTMLElement;
         props: Propify<InitialProps>;
         outputs: any;
-    }
+    },
 >(
-    create: (initialProps: InitialProps) => T
+    create: (initialProps: InitialProps) => T,
 ): (
     props: {
         ref?: RefObject<T>;
     } & {
         [K in keyof InitialProps]: InitialProps[K] | Reactive<InitialProps[K]>;
-    }
+    },
 ) => T {
     return (props) => {
         const { ref, ...rest } = props ?? {};
@@ -133,13 +139,6 @@ export function children<T>(
     return (parent: HTMLElement) => {
         const config = typeof arg === "function" ? { create: arg } : arg;
 
-        // const initialChildren = get(list);
-        // const fragment = document.createDocumentFragment();
-        // fragment.append(
-        //     ...initialChildren.map((item, index) => config.create(item, index)),
-        // );
-        // parent.appendChild(fragment);
-
         return applyChildren(parent, {
             each: list,
             create: config.create,
@@ -149,3 +148,4 @@ export function children<T>(
         });
     };
 }
+

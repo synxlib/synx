@@ -93,6 +93,16 @@
             "development": {
                 "import": "./src/string/index.ts"
             }
+        },
+        "./reducer": {
+            "default": "./src/reducer/index.ts",
+            "production": {
+                "import": "./dist/reducer/index.js",
+                "require": "./dist/reducer/index.cjs"
+            },
+            "development": {
+                "import": "./src/reducer/index.ts"
+            }
         }
     },
     "scripts": {

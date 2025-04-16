@@ -4,6 +4,7 @@ import { isReactive, type Reactive, subscribe, get } from "@synx/frp/reactive";
 import { ComponentFactory } from "../component";
 import { text } from "./index";
 import { bindClass } from "../bind/class";
+import { bind } from "../bind/attribute";
 
 export type Child =
     | Node
@@ -95,7 +96,17 @@ export function h<K extends keyof HTMLElementTagNameMap>(
             } else if (key.startsWith("data-") || key.startsWith("aria-")) {
                 el.setAttribute(key, String(value));
             } else if (value != null && value !== false) {
-                el.setAttribute(key, String(value));
+                // el.setAttribute(key, String(value));
+                if (isReactive(value)) {
+                    bind(el, key, value);
+                } else {
+                    if (typeof value === "boolean") {
+                        if (value) el.setAttribute(key, "");
+                        else el.removeAttribute(key);
+                    } else {
+                        el.setAttribute(key, String(value));
+                    }
+                }
             }
         }
     }

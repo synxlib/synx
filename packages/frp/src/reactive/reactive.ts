@@ -38,7 +38,6 @@ export class ReactiveImpl<A> implements InternalReactive<A> {
 
         if (changeEvent) {
             const unsub = E.subscribe(changeEvent, (v) => {
-                console.log("Reactive change event:", v);
                 this.currentValue = v;
             });
             this.cleanupFns.add(unsub);
@@ -242,6 +241,19 @@ export function switchB<A>(
 
     return create(initialValue, switchedEvent);
 }
+
+export function concatE<A>(
+    reactiveEvents: Reactive<Event<A>[]>,
+): Event<A> {
+    const current = E.concatAll(get(reactiveEvents)); // initial stream
+
+    const updated = E.map(
+      changes(reactiveEvents as InternalReactive<Event<A>[]>), 
+      E.concatAll
+    );
+  
+    return E.switchE(current, updated);
+};
 
 export function initialThen<A>(
     initial: Reactive<A>,

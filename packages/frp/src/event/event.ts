@@ -152,6 +152,16 @@ export function empty<A>(): Event<A> {
     return never<A>();
 }
 
+export function of<T>(value: T): Event<T> {
+    const future = new Future<T>((handler) => {
+        handler(value);
+        return () => {
+            // No-op
+        };
+    });
+    return new EventImpl<T>(future);
+}
+
 export function subscribe<A>(ev: Event<A>, fn: (a: A) => void): () => void {
     const impl = ev as unknown as EventImpl<A>;
     try {
@@ -237,6 +247,16 @@ export function concat<A>(e0: Event<A>, e1: Event<A>): Event<A> {
         (a) => a,
         (b) => b,
     );
+}
+
+export function concatAll<A>(events: Event<A>[]): Event<A> {
+    if (events.length === 0) {
+        return empty<A>();
+    } else if (events.length === 1) {
+        return events[0];
+    }
+
+    return events.reduce((acc, ev) => concat(acc, ev), empty<A>());
 }
 
 export function apply<A, B>(ev: Event<A>, rf: Reactive<(a: A) => B>): Event<B> {
