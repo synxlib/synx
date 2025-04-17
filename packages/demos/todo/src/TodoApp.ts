@@ -33,8 +33,9 @@ function createTodoApp() {
     const todoList = Ref<ReturnType<typeof TodoList>>();
     const [clear, emitClear] = E.create<MouseEvent>();
 
-    const todoCompleted = refOutput(todoList, "completed");
-    const todoDeleted = refOutput(todoList, "deleted");
+    const todoCompleted = refOutput<string>(todoList, "completed");
+    const todoDeleted = refOutput<string>(todoList, "deleted");
+    const todoEdited = refOutput<{ id: string, description: string }>(todoList, "edited");
     const filterValue = slice(locationHash(), 2, undefined);
 
     const onSubmit = E.filter(submitTodo, (e) => e.key === "Enter");
@@ -61,7 +62,12 @@ function createTodoApp() {
             todos.filter((t) => t.id !== id),
         ),
 
-        on(clear, (ev, todos) => todos.filter((t) => !t.completed))
+        on(clear, (ev, todos) => todos.filter((t) => !t.completed)),
+
+        on(todoEdited, ({ id, description }, todos) => 
+            todos.map(
+                (t) => (t.id === id ? { ...t, description } : t),
+        ))
     ]);
 
     const totalCount = length(todos);
@@ -104,7 +110,7 @@ function createTodoApp() {
         footer(
             {
                 class: {
-                    "flex items-center justify-between gap-2 p-3 bg-white": true,
+                    "footer relative flex items-center justify-between gap-2 p-3 bg-white": true,
                     hidden: lt(totalCount, 1),
                 },
             },

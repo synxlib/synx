@@ -2,13 +2,18 @@ import { E, R } from "@synx/frp";
 import { defineComponent, Prop } from "@synx/dom/component";
 import { li, span, button, input, div, label } from "@synx/dom/tags";
 import { Todo, toggle } from "./domain/todo";
+import { inputValue } from "@synx/dom";
 import { prop } from "@synx/dsl/object";
+import { not } from "@synx/dsl/logic";
+import { slice, trim } from "@synx/dsl/string";
 
 function createTodo(initial: { todo: Todo }) {
     const todo = Prop(initial.todo);
 
     const [toggleEv, emitToggle] = E.create<Event>();
     const [deleteEv, emitDelete] = E.create<MouseEvent>();
+    const [editEv, emitEdit] = E.create<MouseEvent>();
+    const [submitTodo, emitSubmit] = E.create<KeyboardEvent>();
 
     const completed = E.map(
         E.map(toggleEv, () => R.get(todo.prop)),
@@ -21,6 +26,15 @@ function createTodo(initial: { todo: Todo }) {
     );
 
     const isCompleted = prop(todo.prop, "completed");
+
+    const onSubmit = E.filter(submitTodo, (e) => e.key === "Enter");
+    const rawValue = E.stepper(inputValue(onSubmit), "");
+    const submitValue = E.map(E.filter(E.tag(onSubmit, trim(rawValue)), (s) => s.length > 0), (s) => ({ id: R.get(todo.prop).id, description: s }));
+    const inputElValue = R.map(rawValue, () => "");
+
+    const isEditing = E.fold(E.concat(editEv as E.Event<Event>, onSubmit as E.Event<Event>), false, (acc, ev) => {
+        return !acc;
+    });
 
     const el = li(
         { class: { todo: true, completed: isCompleted } },
@@ -37,10 +51,24 @@ function createTodo(initial: { todo: Todo }) {
                         "grow text-2xl transition-colors delay-150 duration-300 ease-in-out": true,
                         "line-through": isCompleted,
                         "text-gray-500": isCompleted,
-                    }
+                        "hidden": isEditing
+                    },
+                    on: { dblclick: emitEdit }
                 },
                 prop(todo.prop, "description")
             ),
+            input({
+                type: "text",
+                placeholder: "What needs to be done?",
+                class: {
+                    "new-todo text-xl w-full mt-4 bg-white h-[65] p-2 pl-16 shadow-md placeholder:text-2xl placeholder:text-gray-400 placeholder:italic focus:border-2 focus:border-[#cf7d7d] outline-none": true,
+                    "hidden": not(isEditing),
+                },
+                value: prop(todo.prop, "description"),
+                on: {
+                    keypress: emitSubmit,
+                },
+            }),
             button(
                 {
                     class: "destroy cursor-pointer group-hover:block hidden text-red-600",
@@ -58,7 +86,7 @@ function createTodo(initial: { todo: Todo }) {
         props: {
             todo,
         },
-        outputs: { completed, deleted },
+        outputs: { completed, deleted, edited: submitValue },
     };
 }
 

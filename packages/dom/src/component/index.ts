@@ -39,7 +39,7 @@ export function Ref<T>() {
 }
 
 export const refOutput = <T>(
-    r: { ref: Event<{ outputs?: Record<string, Event<T>> } | undefined> },
+    r: { ref: Event<{ outputs?: Record<string, Event<any>> } | undefined> },
     n: string,
     defaultValue?: T,
 ): Event<T> => {

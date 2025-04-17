@@ -36,12 +36,16 @@ function createTodos(initial: { todos: Todo[] }) {
         R.map(items, (items) => items.map((item) => item.outputs.deleted)),
     );
 
+    const edited = R.concatE(
+        R.map(items, (items) => items.map((item) => item.outputs.edited)),
+    );
+
     return {
         el,
         props: {
             todos,
         },
-        outputs: { completed: completed, deleted: deleted },
+        outputs: { completed: completed, deleted: deleted, edited },
     };
 }
 
