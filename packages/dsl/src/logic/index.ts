@@ -10,8 +10,8 @@ export const not = <T extends Reactive<boolean>>(r: T) => map(r, (v: boolean) =>
 export const and = lift2(f2((a: boolean, b: boolean) => a && b));
 export const or = lift2(f2((a: boolean, b: boolean) => !!(a || b)));
 export const xor = lift2(f2((a: boolean, b: boolean) => !!(a !== b)));
-export const eq = lift2(f2((a: boolean, b: boolean) => a === b));
-export const neq = lift2(f2((a: boolean, b: boolean) => a !== b));
+export const eq = lift2(f2(<T>(a: T, b: T) => a === b));
+export const neq = lift2(f2(<T>(a: T, b: T) => a !== b));
 export const gt = lift2(f2((a: number, b: number) => a > b));
 export const gte = lift2(f2((a: number, b: number) => a >= b));
 export const lt = lift2(f2((a: number, b: number) => a < b));

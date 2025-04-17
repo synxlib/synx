@@ -20,6 +20,16 @@ function isBooleanAttr(attr: string): boolean {
     return booleanAttrs.has(attr);
 }
 
+function isSpecialProp(el: HTMLElement, attr: string): boolean {
+    const tag = el.tagName.toLowerCase();
+    return (
+        (attr === "value" && (tag === "input" || tag === "textarea" || tag === "select")) ||
+        (attr === "checked" && tag === "input") ||
+        (attr === "selected" && tag === "option") ||
+        (attr === "disabled" || attr === "readonly" || attr === "multiple" || attr === "open")
+    );
+}
+
 export function bind<
     K extends keyof ElementAttributeMap,
     A extends keyof ElementAttributeMap[K],
@@ -40,6 +50,13 @@ export function bind<
     }
 
     const attrKey = attr as string;
+
+    if (isSpecialProp(el, attrKey)) {
+        (el as any)[attrKey] = value;
+        return subscribe(reactive, (v) => {
+            (el as any)[attrKey] = v;
+        });
+    }
 
     // Boolean attributes
     if (typeof value === "boolean" || isBooleanAttr(attrKey)) {

@@ -9,7 +9,7 @@ import { locationHash } from "@synx/dom/routing";
 import { ifElse, gt, lt, eq } from "@synx/dsl/logic";
 import { filter, length } from "@synx/dsl/list";
 import { sub } from "@synx/dsl/math";
-import { slice } from "@synx/dsl/string";
+import { slice, trim } from "@synx/dsl/string";
 import { combineReducers, on } from "@synx/dsl/reducer";
 
 const STORAGE_KEY = "todos";
@@ -37,9 +37,15 @@ function createTodoApp() {
     const todoDeleted = refOutput(todoList, "deleted");
     const filterValue = slice(locationHash(), 2, undefined);
 
+    const onSubmit = E.filter(submitTodo, (e) => e.key === "Enter");
+    const rawValue = E.stepper(inputValue(onSubmit), "");
+    const submitValue = E.filter(E.tag(onSubmit, trim(rawValue)), (s) => s.length > 0);
+    const inputElValue = R.map(rawValue, () => "");
+
+    // This is just fold underneath
     const todos = combineReducers(initialTodos, [
         on(
-            inputValue(E.filter(submitTodo, (e) => e.key === "Enter")),
+            submitValue,
             (description, todos) => [...todos, createTodo(description)],
         ),
 
@@ -86,6 +92,7 @@ function createTodoApp() {
                 type: "text",
                 placeholder: "What needs to be done?",
                 class: "new-todo text-xl w-full mt-4 bg-white h-[65] p-2 pl-16 shadow-md placeholder:text-2xl placeholder:text-gray-400 placeholder:italic focus:border-2 focus:border-[#cf7d7d] outline-none",
+                value: inputElValue,
                 on: {
                     keypress: emitSubmit,
                 },
@@ -97,23 +104,28 @@ function createTodoApp() {
         footer(
             {
                 class: {
-                    "flex items-center gap-2": true,
-                    hidden: lt(remaining, 1),
+                    "flex items-center justify-between gap-2 p-3 bg-white": true,
+                    hidden: lt(totalCount, 1),
                 },
             },
             span({},
                 remaining,
                 " ",
-                ifElse(gt(remaining, 1), "items", "item"),
+                ifElse(eq(remaining, 1), "item", "items"),
                 " left",
             ),
             TodoFilter({}).el,
-            button({
-                on: { click: emitClear },
-                class: {
-                    hidden: R.map(completedCount, (c) => c === 0)
-                }
-            }, "Clear Completed")
+            div({
+                class: { "min-w-32": true}
+            },
+                button({
+                    on: { click: emitClear },
+                    class: {
+                        "float-right cursor-pointer hover:underline": true,
+                        hidden: eq(completedCount, 0),
+                    }
+                }, "Clear Completed")
+            )
         ),
     );
 
