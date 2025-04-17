@@ -3,21 +3,20 @@ import { div, input } from "@synx/dom/tags";
 import { defineComponent, Prop } from "@synx/dom/component";
 import { inputValue } from "@synx/dom";
 
-function createInput() {
-    const initialValue = Prop("");
+function createInput(initial: { initialValue: string }) {
+    const initialValue = Prop(initial.initialValue);
     const [inputEv, emitInput] = E.create<Event>();
 
-    const reactiveInput = E.stepper(inputValue(inputEv), "");
-    const value = R.initialThen(initialValue.prop, inputEv, () => reactiveInput);
+    const rawValue = inputValue(inputEv);
     
     const el = div(
         {},
         input({
-            on: { input: [inputEv, emitInput] },
+            on: { input: emitInput },
             class: "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4",
         }),
     );
-    return { el, props: { initialValue }, outputs: { value } };
+    return { el, props: { initialValue }, outputs: { value: rawValue } };
 }
 
 export const Input = defineComponent(createInput);

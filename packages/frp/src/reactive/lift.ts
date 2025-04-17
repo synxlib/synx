@@ -104,21 +104,21 @@ export function liftBinary<A, B, R>(
     fn: (a: UnwrapReactive<A>, b: UnwrapReactive<B>) => R,
 ): {
     (
+        a: Reactive<UnwrapReactive<A>>,
+        b: B extends Reactive<infer V> ? V : B,
+    ): Reactive<R>;
+    (
+        a: A extends Reactive<infer U> ? U : A,
+        b: Reactive<UnwrapReactive<B>>,
+    ): Reactive<R>;
+    (
+        a: Reactive<UnwrapReactive<A>>,
+        b: Reactive<UnwrapReactive<B>>,
+    ): Reactive<R>;
+    (
         a: A extends Reactive<infer U> ? U : A,
         b: B extends Reactive<infer V> ? V : B,
     ): R;
-    (
-        a: Reactive<UnwrapReactive<A>>,
-        b: B extends Reactive<infer V> ? V : B,
-    ): Reactive<R>;
-    (
-        a: A extends Reactive<infer U> ? U : A,
-        b: Reactive<UnwrapReactive<B>>,
-    ): Reactive<R>;
-    (
-        a: Reactive<UnwrapReactive<A>>,
-        b: Reactive<UnwrapReactive<B>>,
-    ): Reactive<R>;
 } {
     return lift(fn) as any;
 }

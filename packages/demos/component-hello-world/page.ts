@@ -1,16 +1,15 @@
 import * as E from "@synx/frp/event";
-import * as R from "@synx/frp/reactive";
 import { defineComponent, Ref, refOutput } from "@synx/dom/component";
 import { div, h1 } from "@synx/dom/tags";
 import { Input } from "./input";
 import { length } from "@synx/dsl/string";
-import { gt, ifElse, orElse } from "@synx/dsl/logic";
+import { gt, orElse } from "@synx/dsl/logic";
 
 function createPage() {
     // Reference to get access to the input component instance
     const inputRef = Ref<ReturnType<typeof Input>>();
 
-    const inputText = refOutput(inputRef, "value");
+    const inputText = E.stepper(refOutput<string>(inputRef, "value"), "");
 
     const isValidText = gt(length(orElse(inputText, "")), 3);
 

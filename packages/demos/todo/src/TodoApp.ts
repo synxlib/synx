@@ -32,6 +32,7 @@ function createTodoApp() {
     const [submitTodo, emitSubmit] = E.create<KeyboardEvent>();
     const todoList = Ref<ReturnType<typeof TodoList>>();
     const [clear, emitClear] = E.create<MouseEvent>();
+    const [completeAllEv, emitCompleteAll] = E.create<Event>();
 
     const todoCompleted = refOutput<string>(todoList, "completed");
     const todoDeleted = refOutput<string>(todoList, "deleted");
@@ -67,11 +68,22 @@ function createTodoApp() {
         on(todoEdited, ({ id, description }, todos) => 
             todos.map(
                 (t) => (t.id === id ? { ...t, description } : t),
-        ))
+        )),
+
+        on(
+            E.map(completeAllEv, (ev: globalThis.Event) => {
+                const input = ev.target as HTMLInputElement | null;
+                return input?.checked ?? false;
+            }),
+            (value, todos) => 
+                todos.map((t) => ({...t, completed: value })
+            )
+        )
     ]);
 
     const totalCount = length(todos);
     const completedCount = length(filter(todos, (todo) => todo.completed));
+    const areAllComplete = eq(totalCount, completedCount);
 
     const remaining = sub(
         totalCount,
@@ -92,8 +104,14 @@ function createTodoApp() {
 
     const el = section(
         { class: "todoapp w-full" },
-        header({ class: "header mt-4" },
+        header({ class: "header mt-4 relative" },
             h1({ class: "title text-7xl text-[#b83f45] text-center" }, "todos"),
+            input({
+                type: "checkbox",
+                class: "absolute bottom-[16px] left-[15px] w-[30] h-[30] rounded-[30] appearance-none border border-gray-400 checked:before:content-['✓'] before:text-xl before:pl-[5px] before:text-green-600",
+                checked: areAllComplete,
+                on: { input: emitCompleteAll }
+            }),
             input({
                 type: "text",
                 placeholder: "What needs to be done?",

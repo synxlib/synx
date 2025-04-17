@@ -24,4 +24,5 @@ body {
   hidden;
     position: absolute;
     right: 0;
+    pointer-events: none;
 }
