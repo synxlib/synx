@@ -11,7 +11,7 @@ It is built on a composable FRP core, but you can choose your own abstraction le
 
 Synx follows a consistent dataflow:
 
-**→ Events → Fold → DOM → Events → ...**
+**→ Events → Fold → State → DOM → Events → ...**
 
 ---
 
@@ -107,6 +107,8 @@ function createInput(initial: { initialValue: string }) {
 
 export const Input = defineComponent(createInput);
 ```
+
+Checkout the full [TodoMVC implementation](packages/demos/todo).
 
 ---
 
