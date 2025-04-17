@@ -1,6 +1,6 @@
 import { E, R } from "@synx/frp";
 import { defineComponent, Ref, refOutput } from "@synx/dom/component";
-import { div, h1, input, footer, span, button } from "@synx/dom/tags";
+import { section, div, h1, input, footer, span, button, header } from "@synx/dom/tags";
 import { createTodo, Todo } from "./domain/todo";
 import { TodoList } from "./TodoList";
 import { TodoFilter } from "./TodoFilter";
@@ -78,18 +78,22 @@ function createTodoApp() {
         )
     ));
 
-    const el = div(
-        { class: "todo-app" },
-        h1({ class: "text-2xl font-bold mb-4" }, "Todo List"),
-        input({
-            type: "text",
-            placeholder: "Add a new todo",
-            class: "mb-4",
-            on: {
-                keypress: emitSubmit,
-            },
-        }),
-        TodoList({ todos: filteredTodos, ref: todoList }).el,
+    const el = section(
+        { class: "todoapp w-full" },
+        header({ class: "header mt-4" },
+            h1({ class: "title text-7xl text-[#b83f45] text-center" }, "todos"),
+            input({
+                type: "text",
+                placeholder: "What needs to be done?",
+                class: "new-todo text-xl w-full mt-4 bg-white h-[65] p-2 pl-16 shadow-md placeholder:text-2xl placeholder:text-gray-400 placeholder:italic focus:border-2 focus:border-[#cf7d7d] outline-none",
+                on: {
+                    keypress: emitSubmit,
+                },
+            }),
+        ),
+        section({ class: "main bg-white border-1 border-[#e6e6e6]" },
+            TodoList({ todos: filteredTodos, ref: todoList }).el,
+        ),
         footer(
             {
                 class: {

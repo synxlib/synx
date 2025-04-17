@@ -242,18 +242,16 @@ export function switchB<A>(
     return create(initialValue, switchedEvent);
 }
 
-export function concatE<A>(
-    reactiveEvents: Reactive<Event<A>[]>,
-): Event<A> {
+export function concatE<A>(reactiveEvents: Reactive<Event<A>[]>): Event<A> {
     const current = E.concatAll(get(reactiveEvents)); // initial stream
 
     const updated = E.map(
-      changes(reactiveEvents as InternalReactive<Event<A>[]>), 
-      E.concatAll
+        changes(reactiveEvents as InternalReactive<Event<A>[]>),
+        E.concatAll,
     );
-  
+
     return E.switchE(current, updated);
-};
+}
 
 export function initialThen<A>(
     initial: Reactive<A>,
@@ -261,4 +259,66 @@ export function initialThen<A>(
     next: () => Reactive<A>,
 ): Reactive<A> {
     return switchB(initial, E.map(trigger, next));
+}
+
+export function mapEachReactive<T, R>(
+    list$: Reactive<T[]>,
+    mapFn: (item$: Reactive<T>, index: number) => R,
+    options?: {
+        key?: (item: T, index: number) => string | number;
+        isEqual?: (a: T, b: T) => boolean;
+        dispose?: (output: R) => void;
+    },
+): Reactive<R[]> {
+    const keyFn = options?.key ?? ((_: T, i: number) => i);
+    const isEqual = options?.isEqual ?? ((a, b) => a === b);
+    const dispose = options?.dispose;
+
+    const map = new Map<
+        string | number,
+        { reactive: ReactiveImpl<T>; output: R }
+    >();
+
+    let result: R[] = [];
+    const out = new ReactiveImpl(result);
+
+    subscribe(list$, (items) => {
+        const newKeys = new Set<string | number>();
+        const newResult: R[] = [];
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const key = keyFn(item, i);
+            newKeys.add(key);
+
+            let entry = map.get(key);
+
+            if (entry) {
+                if (!isEqual(entry.reactive.currentValue, item)) {
+                    entry.reactive.updateValueInternal(item);
+                }
+            } else {
+                const reactive = new ReactiveImpl(item);
+                const output = mapFn(reactive, i);
+                entry = { reactive, output };
+                map.set(key, entry);
+            }
+
+            newResult.push(entry.output);
+        }
+
+        // Cleanup removed keys
+        for (const [key, entry] of map.entries()) {
+            if (!newKeys.has(key)) {
+                cleanup(entry.reactive);
+                dispose?.(entry.output);
+                map.delete(key);
+            }
+        }
+
+        result = newResult;
+        out.updateValueInternal(result);
+    });
+
+    return out;
 }

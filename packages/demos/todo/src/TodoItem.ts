@@ -1,6 +1,6 @@
 import { E, R } from "@synx/frp";
 import { defineComponent, Prop } from "@synx/dom/component";
-import { li, span, button, input } from "@synx/dom/tags";
+import { li, span, button, input, div, label } from "@synx/dom/tags";
 import { Todo, toggle } from "./domain/todo";
 import { prop } from "@synx/dsl/object";
 
@@ -20,31 +20,37 @@ function createTodo(initial: { todo: Todo }) {
         (todo) => todo.id
     );
 
-    const el = li(
-        { class: "flex justify-between gap-2 items-center p-2" },
-        input({ type: "checkbox", checked: prop(todo.prop, "completed"), on: {
-            input: emitToggle
-        }}),
-        span(
-            {
-                class: {
-                    "align-left": true,
-                    "line-through": prop(todo.prop, "completed"),
-                }
-            },
-            prop(todo.prop, "description")
-        ),
-        button(
-            {
-                class: "cursor-pointer",
-                type: "button",
-                on: {
-                    click: emitDelete
-                }
-            },
-            "✖",
+    const isCompleted = prop(todo.prop, "completed");
 
-        )
+    const el = li(
+        { class: { todo: true, completed: isCompleted } },
+        div({ class: "view flex justify-between gap-2 items-center p-4 group" },
+            input({
+                class: "toggle w-[30] h-[30] rounded-[30] appearance-none border border-gray-400 checked:before:content-['✓'] before:text-xl before:pl-[5px] before:text-green-600",
+                type: "checkbox",
+                checked: prop(todo.prop, "completed"),
+                on: { input: emitToggle }
+            }),
+            label(
+                {
+                    class: {
+                        "grow text-2xl transition-colors delay-150 duration-300 ease-in-out": true,
+                        "line-through": isCompleted,
+                        "text-gray-500": isCompleted,
+                    }
+                },
+                prop(todo.prop, "description")
+            ),
+            button(
+                {
+                    class: "destroy cursor-pointer group-hover:block hidden text-red-600",
+                    type: "button",
+                    on: { click: emitDelete }
+                },
+                "✖",
+
+            )
+        ),
     )
 
     return {

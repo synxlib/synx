@@ -1,3 +1,3 @@
 import { TodoApp } from './TodoApp';
 
-document.getElementById("container")?.appendChild(TodoApp({}).el);
+document.getElementById("main")?.appendChild(TodoApp({}).el);
