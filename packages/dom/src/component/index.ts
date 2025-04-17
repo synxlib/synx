@@ -74,11 +74,11 @@ export function defineComponent<
     create: (initialProps: InitialProps) => T,
 ): (
     props: {
-        ref?: RefObject<T>;
+        ref?: RefObject<T & { cleanup: () => void }>;
     } & {
         [K in keyof InitialProps]: InitialProps[K] | Reactive<InitialProps[K]>;
     },
-) => T {
+) => T & { cleanup: () => void } {
     return (props) => {
         const { ref, ...rest } = props ?? {};
 
@@ -91,34 +91,41 @@ export function defineComponent<
             ) as InitialProps,
         );
 
-        if (ref) {
-            ref.set(instance);
-        }
+        const unsubscribers: (() => void)[] = [];
 
         for (const [key, value] of Object.entries(rest)) {
             const target = instance.props[key];
             if (target && typeof target === "object" && "emit" in target) {
                 if (isReactive(value)) {
-                    subscribe(value, target.emit);
+                    unsubscribers.push(subscribe(value, target.emit));
                 } else {
                     target.emit(value);
                 }
             }
         }
 
-        return instance;
+        const returnValue = { ...instance, cleanup: () => {
+            for (const unsub of unsubscribers) unsub();
+            unsubscribers.length = 0;
+        }};
+
+        if (ref) {
+            ref.set(returnValue);
+        }
+
+        return returnValue;
     };
 }
 
 export function children<T>(
     list: Reactive<T[]>,
-    create: (item: T, index: number) => Node,
+    create: (item: T, index: number) => Node | [Node, () => void],
 ): (parent: HTMLElement) => () => void;
 
 export function children<T>(
     list: Reactive<T[]>,
     config: {
-        create: (item: T, index: number) => Node;
+        create: (item: T, index: number) => Node | [Node, () => void];
         update?: (node: Node, item: T, index: number) => void;
         shouldUpdate?: (prev: T, next: T) => boolean;
         key?: (item: T) => string | number;
@@ -128,9 +135,9 @@ export function children<T>(
 export function children<T>(
     list: Reactive<T[]>,
     arg:
-        | ((item: T, index: number) => Node)
+        | ((item: T, index: number) => Node | [Node, () => void])
         | {
-              create: (item: T, index: number) => Node;
+              create: (item: T, index: number) => Node | [Node, () => void];
               update?: (node: Node, item: T, index: number) => void;
               shouldUpdate?: (prev: T, next: T) => boolean;
               key?: (item: T) => string | number;

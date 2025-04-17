@@ -24,7 +24,7 @@ function createTodos(initial: { todos: Todo[] }) {
     const el = ul(
         {},
         children(items, {
-            create: (item) => item.el,
+            create: (item) => [item.el, item.cleanup],
         }),
     );
 

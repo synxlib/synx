@@ -4,7 +4,7 @@ export function children<T>(
     parent: HTMLElement,
     config: {
         each: Reactive<T[]>;
-        create: (item: T, index: number) => Node;
+        create: (item: T, index: number) => Node | [Node, () => void];
         update?: (node: Node, item: T, index: number) => void;
         shouldUpdate?: (prev: T, next: T) => boolean;
         key?: (item: T) => string | number;
@@ -17,7 +17,7 @@ export function children<T>(
 
     const { each, create, update } = config;
 
-    return subscribe(each, (newItems) => {
+    const unsubscribe = subscribe(each, (newItems) => {
         const newLen = newItems.length;
 
         if (newLen === 0) {
@@ -56,6 +56,12 @@ export function children<T>(
         disposers = result.disposers;
         len = result.len;
     });
+
+    return () => {
+        for(const dispose of disposers) dispose?.();
+        disposers.length = 0;
+        unsubscribe();
+    }
 }
 
 function handleEmpty<T>(
@@ -73,7 +79,7 @@ function handleEmpty<T>(
 function mountInitial<T>(
     parent: HTMLElement,
     newItems: T[],
-    create: (item: T, index: number) => Node,
+    create: (item: T, index: number) => Node | [Node, () => void],
 ): {
     items: T[];
     nodes: Node[];
@@ -84,10 +90,16 @@ function mountInitial<T>(
     const disposers: (() => void)[] = [];
 
     for (let i = 0; i < items.length; i++) {
-        const node = create(items[i], i);
-        parent.appendChild(node);
-        nodes[i] = node;
-        disposers[i] = () => {}; // placeholder — useful if we add cleanup support
+        const result = create(items[i], i);
+        if (Array.isArray(result)) {
+            nodes[i] = result[0];
+            disposers[i] = result[1];
+            parent.appendChild(result[0]);
+        } else {
+            nodes[i] = result;
+            disposers[i] = () => {};
+            parent.appendChild(result);
+        }
     }
 
     return { items, nodes, disposers };
@@ -99,7 +111,7 @@ function reconcile<T>(
     oldNodes: Node[],
     oldDisposers: (() => void)[],
     newItems: T[],
-    create: (item: T, index: number) => Node,
+    create: (item: T, index: number) => Node | [Node, () => void],
     update?: (node: Node, item: T, index: number) => void,
     shouldUpdate?: (prev: T, next: T) => boolean,
     key?: (item: T) => string | number,
@@ -204,10 +216,18 @@ function reconcile<T>(
     for (j = start; j <= endNew; j++) {
         const node = tempNodes[j];
         if (!node) {
-            const newNode = create(newItems[j], j);
-            tempNodes[j] = newNode;
-            tempDisposers[j] = () => {};
-            parent.insertBefore(newNode, current);
+            const result = create(newItems[j], j);
+            if (Array.isArray(result)) {
+                const newNode = result[0];
+                tempNodes[j] = newNode;
+                tempDisposers[j] = result[1];
+                parent.insertBefore(newNode, current);
+            } else {
+                const newNode = result;
+                tempNodes[j] = newNode;
+                tempDisposers[j] = () => {};
+                parent.insertBefore(newNode, current);
+           }
         } else {
             while (current && current !== node) current = current.nextSibling;
             if (node !== current) parent.insertBefore(node, current);
