@@ -136,7 +136,7 @@ export function defineComponent<
 //     };
 // }
 
-export function children<T>(
+export function each<T>(
     list: Reactive<T[]>,
     config: {
         create: (
@@ -152,7 +152,7 @@ export function children<T>(
     },
 ): (parent: HTMLElement) => () => void;
 
-export function children<T>(
+export function each<T>(
     list: Reactive<T[]>,
     arg:
         | ((

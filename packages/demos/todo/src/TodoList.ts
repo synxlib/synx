@@ -3,8 +3,7 @@ import {
     defineComponent,
     Prop,
     Ref,
-    children,
-    refOutput,
+    each,
     RefMap,
     mergeRefOutputs,
 } from "@synx/dom/component";
@@ -23,7 +22,7 @@ function createTodos(initial: { todos: Todo[] }) {
 
     const el = ul(
         {},
-        children(todos.prop, {
+        each(todos.prop, {
             create: (todo, k) => li({}, TodoItem({ todo, ref: items.get(String(k)) })),
             key: (todo) => todo.id,
         }),
