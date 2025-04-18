@@ -10,6 +10,8 @@ import { slice, trim } from "@synx/dsl/string";
 function createTodo(initial: { todo: Todo }) {
     const todo = Prop(initial.todo);
 
+    R.subscribe(todo.prop, (v) => console.log("TodoItem: Todo updated", v))
+
     const [toggleEv, emitToggle] = E.create<Event>();
     const [deleteEv, emitDelete] = E.create<MouseEvent>();
     const [editEv, emitEdit] = E.create<MouseEvent>();
@@ -36,7 +38,7 @@ function createTodo(initial: { todo: Todo }) {
         return !acc;
     });
 
-    const el = li(
+    const el = div(
         { class: { todo: true, completed: isCompleted } },
         div({ class: "view flex justify-between gap-2 items-center p-4 group" },
             input({

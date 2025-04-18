@@ -242,6 +242,17 @@ export function switchB<A>(
     return create(initialValue, switchedEvent);
 }
 
+export function switchR<A>(
+    initial: Event<A>,
+    reactiveOfEvent: Reactive<Event<A>>,
+): Event<A> {
+    return E.switchE(
+        initial,
+        changes(reactiveOfEvent as InternalReactive<Event<A>>),
+    );
+}
+
+
 export function concatE<A>(reactiveEvents: Reactive<Event<A>[]>): Event<A> {
     const current = E.concatAll(get(reactiveEvents)); // initial stream
 

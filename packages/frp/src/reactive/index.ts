@@ -13,6 +13,7 @@ export {
     ap,
     chain,
     switchB,
+    switchR,
     initialThen,
     concatE,
     mapEachReactive

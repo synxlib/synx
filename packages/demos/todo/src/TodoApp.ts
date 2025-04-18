@@ -39,6 +39,8 @@ function createTodoApp() {
     const todoEdited = refOutput<{ id: string, description: string }>(todoList, "edited");
     const filterValue = slice(locationHash(), 2, undefined);
 
+    E.subscribe(todoEdited, (v) => console.log("TodoApp: todoEdited", v))
+
     const onSubmit = E.filter(submitTodo, (e) => e.key === "Enter");
     const rawValue = E.stepper(inputValue(onSubmit), "");
     const submitValue = E.filter(E.tag(onSubmit, trim(rawValue)), (s) => s.length > 0);

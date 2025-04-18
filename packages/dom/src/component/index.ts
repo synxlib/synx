@@ -1,5 +1,5 @@
 import { create as createEvent, Event, stepper } from "@synx/frp/event";
-import * as E from "@synx/frp/event";
+import { E, R } from "@synx/frp";
 import {
     Reactive,
     get,
@@ -10,6 +10,8 @@ import {
     of,
 } from "@synx/frp/reactive";
 import { children as applyChildren } from "../children";
+import { RefObject, RefMapObject } from "./ref";
+export { Ref, RefMap, refOutput, mergeRefOutputs } from "./ref";
 
 export type ComponentFactory = () => {
     el: Node;
@@ -29,31 +31,6 @@ export const Prop = <A>(initial: A) => {
     const [ev, emit] = createEvent<A>();
     const prop = stepper(ev, initial);
     return { prop, emit };
-};
-
-type RefObject<T> = { ref: Event<T>; set: (val: T) => void };
-
-export function Ref<T>() {
-    const [ev, emit] = createEvent<T>();
-    return { ref: ev, set: emit } as const;
-}
-
-export const refOutput = <T>(
-    r: { ref: Event<{ outputs?: Record<string, Event<any>> } | undefined> },
-    n: string,
-    defaultValue?: T,
-): Event<T> => {
-    const fallback =
-        defaultValue !== undefined ? E.of(defaultValue) : E.never<T>();
-
-    const outputValue: Event<Event<T>> = E.map(
-        r.ref,
-        (v) => v?.outputs?.[n] ?? fallback,
-    );
-
-    const initial = fallback;
-
-    return E.switchE(initial, outputValue);
 };
 
 type Propify<T> = {
@@ -104,10 +81,13 @@ export function defineComponent<
             }
         }
 
-        const returnValue = { ...instance, cleanup: () => {
-            for (const unsub of unsubscribers) unsub();
-            unsubscribers.length = 0;
-        }};
+        const returnValue = {
+            ...instance,
+            cleanup: () => {
+                for (const unsub of unsubscribers) unsub();
+                unsubscribers.length = 0;
+            },
+        };
 
         if (ref) {
             ref.set(returnValue);
@@ -117,15 +97,55 @@ export function defineComponent<
     };
 }
 
-export function children<T>(
-    list: Reactive<T[]>,
-    create: (item: T, index: number) => Node | [Node, () => void],
-): (parent: HTMLElement) => () => void;
+// export function children<T>(
+//     list: Reactive<T[]>,
+//     create: (item: T, index: number) => Node | [Node, () => void],
+// ): (parent: HTMLElement) => () => void;
+
+// export function children<T>(
+//     list: Reactive<T[]>,
+//     config: {
+//         create: (item: T, index: number) => Node | [Node, () => void];
+//         update?: (node: Node, item: T, index: number) => void;
+//         shouldUpdate?: (prev: T, next: T) => boolean;
+//         key?: (item: T) => string | number;
+//     },
+// ): (parent: HTMLElement) => () => void;
+
+// export function children<T>(
+//     list: Reactive<T[]>,
+//     arg:
+//         | ((item: T, index: number) => Node | [Node, () => void])
+//         | {
+//               create: (item: T, index: number) => Node | [Node, () => void];
+//               update?: (node: Node, item: T, index: number) => void;
+//               shouldUpdate?: (prev: T, next: T) => boolean;
+//               key?: (item: T) => string | number;
+//           },
+// ) {
+//     return (parent: HTMLElement) => {
+//         const config = typeof arg === "function" ? { create: arg } : arg;
+
+//         return applyChildren(parent, {
+//             each: list,
+//             create: config.create,
+//             update: config.update,
+//             shouldUpdate: config.shouldUpdate,
+//             key: config.key,
+//         });
+//     };
+// }
 
 export function children<T>(
     list: Reactive<T[]>,
     config: {
-        create: (item: T, index: number) => Node | [Node, () => void];
+        create: (
+            item: T,
+            key: string | number,
+        ) =>
+            | Node
+            | [Node, () => void]
+            | ReturnType<ComponentFactory & { cleanup: () => void }>;
         update?: (node: Node, item: T, index: number) => void;
         shouldUpdate?: (prev: T, next: T) => boolean;
         key?: (item: T) => string | number;
@@ -135,24 +155,68 @@ export function children<T>(
 export function children<T>(
     list: Reactive<T[]>,
     arg:
-        | ((item: T, index: number) => Node | [Node, () => void])
+        | ((
+              item: Reactive<T>,
+              index: number,
+          ) =>
+              | Node
+              | [Node, () => void]
+              | ReturnType<ComponentFactory & { cleanup: () => void }>)
         | {
-              create: (item: T, index: number) => Node | [Node, () => void];
+              create: (
+                  item: Reactive<T>,
+                  key: string | number,
+              ) =>
+                  | Node
+                  | [Node, () => void]
+                  | ReturnType<ComponentFactory & { cleanup: () => void }>;
               update?: (node: Node, item: T, index: number) => void;
               shouldUpdate?: (prev: T, next: T) => boolean;
               key?: (item: T) => string | number;
           },
 ) {
     return (parent: HTMLElement) => {
-        const config = typeof arg === "function" ? { create: arg } : arg;
+        const config =
+            typeof arg === "function"
+                ? {
+                      create: arg,
+                      key: undefined,
+                      update: undefined,
+                      shouldUpdate: undefined,
+                  }
+                : arg;
+
+        const keyFn = config.key ?? ((_, i) => i);
+
+        const items = R.mapEachReactive(list, config.create, {
+            key: config.key,
+        });
+
+        const enhancedCreate = (
+            item:
+                | Node
+                | {
+                      el: Node;
+                      props: Record<
+                          string,
+                          {
+                              prop: Reactive<any>;
+                              emit: (value: any) => void;
+                          }
+                      >;
+                      outputs: Record<string, Event<any>>;
+                  } & { cleanup: () => void }
+                | [Node, () => void],
+            index: number,
+        ): [Node, () => void] => {
+            if (Array.isArray(item)) return item;
+            if ("el" in item) return [item.el, item.cleanup ?? (() => {})];
+            return [item, () => {}];
+        };
 
         return applyChildren(parent, {
-            each: list,
-            create: config.create,
-            update: config.update,
-            shouldUpdate: config.shouldUpdate,
-            key: config.key,
+            each: items,
+            create: enhancedCreate,
         });
     };
 }
-
