@@ -252,7 +252,6 @@ export function switchR<A>(
     );
 }
 
-
 export function concatE<A>(reactiveEvents: Reactive<Event<A>[]>): Event<A> {
     const current = E.concatAll(get(reactiveEvents)); // initial stream
 

@@ -114,22 +114,16 @@ export const refOutput = <T>(
     const fallback =
         defaultValue !== undefined ? E.of(defaultValue) : E.never<T>();
 
-    // Create a reactive value that tracks the current output event
-    const outputEventReactive: Reactive<Event<T>> = R.map(
+    const outputEventReactive = R.map(
         r.ref,
-        (v) => v?.outputs?.[n] ?? fallback,
+        (v) => (v?.outputs?.[n] ?? fallback),
     );
 
-    // Create an event that emits the current output event when it changes
-    const [eventOfEvents, emitEvent] = E.create<Event<T>>();
+    const initial = R.get(r.ref)?.outputs?.[n] ?? fallback;
 
-    // Subscribe to changes in the reactive value
-    R.subscribe(outputEventReactive, (event) => {
-        emitEvent(event);
-    });
+    const event = R.switchR(initial, outputEventReactive);
 
-    // Use switchE to switch between events
-    return E.switchE(fallback, eventOfEvents);
+    return event;
 };
 
 /**

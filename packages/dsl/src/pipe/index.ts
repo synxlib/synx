@@ -26,4 +26,3 @@ export function pipe<T>(v: T): Pipeable<T> {
         value: () => v,
     };
 }
-

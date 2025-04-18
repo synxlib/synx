@@ -2,7 +2,6 @@ import { E, R } from "@synx/frp";
 import {
     defineComponent,
     Prop,
-    Ref,
     each,
     RefMap,
     mergeRefOutputs,

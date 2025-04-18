@@ -108,7 +108,7 @@ function createInput(initial: { initialValue: string }) {
 export const Input = defineComponent(createInput);
 ```
 
-Checkout the full [TodoMVC implementation](packages/demos/todo).
+Checkout the full [TodoMVC implementation](packages/demos/todomvc).
 
 ---
 

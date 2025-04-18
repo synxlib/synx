@@ -92,9 +92,18 @@ export function bindClasses(
 //     return result;
 // }
 
-export function classes(...args: (string | [boolean | Reactive<boolean>, string])[]): string {
-    return args.flatMap(arg =>
-      typeof arg === "string" ? [arg] :
-      arg[0] ? arg[1].split(" ") : []
-    ).join(" ");
+export function classes(
+    ...args: (string | [boolean | Reactive<boolean>, string])[]
+): Record<string, boolean | Reactive<boolean>> {
+    return args.reduce((acc, val) => {
+        if (typeof val === "string") return { ...acc, [val]: true };
+        if (Array.isArray(val)) {
+            const classes = val[1].split(" ");
+            return {
+                ...acc,
+                ...classes.reduce((obj, v) => ({ ...obj, [v]: val[0] }), {}),
+            };
+        }
+        return acc;
+    }, {});
 }

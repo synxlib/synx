@@ -5,6 +5,7 @@ import { ComponentFactory } from "../component";
 import { text } from "./index";
 import { bindClass } from "../bind/class";
 import { bind } from "../bind/attribute";
+import { RefObject } from "../component/ref";
 
 export type Child =
     | Node
@@ -24,12 +25,16 @@ export type ClassValue =
     | Reactive<string>
     | Record<string, boolean | Reactive<boolean>>;
 
+type ElementType<K extends keyof JSX.IntrinsicElements> =
+    K extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[K] : never;
+
 export type SynxProps<K extends keyof JSX.IntrinsicElements> = {
-    [P in keyof Omit<JSX.IntrinsicElements[K], "class" | "className">]?:
-        | JSX.IntrinsicElements[K][P]
-        | Reactive<JSX.IntrinsicElements[K][P]>;
+    [P in keyof Omit<
+        JSX.IntrinsicElements[K],
+        "class" | "className" | "ref" | "style" | "on"
+    >]?: JSX.IntrinsicElements[K][P] | Reactive<JSX.IntrinsicElements[K][P]>;
 } & {
-    ref?: (el: JSX.IntrinsicElements[K]) => void;
+    ref?: ((el: ElementType<K>) => void) | RefObject<ElementType<K>>;
     on?: {
         [E in keyof HTMLElementEventMap]?: (e: HTMLElementEventMap[E]) => void;
     };
@@ -47,14 +52,18 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 
     if (props) {
         for (const [key, value] of Object.entries(props)) {
-            if (key === "ref" && typeof value === "function") {
-                value(el);
+            if (key === "ref" && value != null) {
+                if (typeof value === "function") {
+                    value(el);
+                } else if (value && typeof value === "object" && "set" in value) {
+                    value.set(el);
+                }
             } else if (key === "style" && value && typeof value === "object") {
                 Object.assign(el.style, value);
             } else if (key === "on" && value && typeof value === "object") {
                 for (const [eventName, emit] of Object.entries(value)) {
                     if (typeof emit === "function") {
-                        el.addEventListener(eventName, emit as EventListener);
+                        el.addEventListener(eventName, emit as unknown as EventListener);
                     }
                 }
             } else if (key === "class" || key === "className") {

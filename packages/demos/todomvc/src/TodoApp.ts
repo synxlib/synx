@@ -6,7 +6,7 @@ import { TodoList } from "./TodoList";
 import { TodoFilter } from "./TodoFilter";
 import { inputValue } from "@synx/dom";
 import { locationHash } from "@synx/dom/routing";
-import { ifElse, gt, lt, eq } from "@synx/dsl/logic";
+import { ifElse, gt, lt, eq, and } from "@synx/dsl/logic";
 import { filter, length } from "@synx/dsl/list";
 import { sub } from "@synx/dsl/math";
 import { slice, trim } from "@synx/dsl/string";
@@ -85,7 +85,7 @@ function createTodoApp() {
 
     const totalCount = length(todos);
     const completedCount = length(filter(todos, (todo) => todo.completed));
-    const areAllComplete = eq(totalCount, completedCount);
+    const areAllComplete = and(gt(totalCount, 0), eq(totalCount, completedCount));
 
     const remaining = sub(
         totalCount,
